@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.32";
+const APP_VERSION = "1.0.33";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -1365,10 +1365,16 @@ export default function App() {
             const todayDow = new Date().getDay();
             const daysToDiv = (divWeekday - todayDow + 7) % 7 || 7;
 
-            // ① HV 블렌딩 (단기 60% + 장기 40%)
+            // ① HV 블렌딩 + HV20 floor + Vol Premium
+            // - 블렌딩: 변동성 확장 시 단기 비중 (HV5×0.6 + HV20×0.4)
+            // - Floor: HV20 미만 방지 (옵션 IV는 빨리 안 떨어짐)
+            // - Vol Premium: 실제 IV ≈ HV × 1.1 (옵션 시장 프리미엄)
             const hv20 = baseQ?.hv20;
             const hv5 = baseQ?.hv5;
-            const hv = (hv5 != null && hv20 != null) ? hv5 * 0.6 + hv20 * 0.4 : hv20;
+            const VOL_PREMIUM = 1.1;
+            const blendedHV = (hv5 != null && hv20 != null) ? hv5 * 0.6 + hv20 * 0.4 : hv20;
+            const hvFloor = blendedHV != null && hv20 != null ? Math.max(blendedHV, hv20) : (blendedHV ?? hv20);
+            const hv = hvFloor != null ? hvFloor * VOL_PREMIUM : null;
 
             // ② 실적 임박 IV 부스트
             const today = new Date();
@@ -1458,7 +1464,7 @@ export default function App() {
                         {hvAnnual && usdkrw && <div>₩{Math.round(hvAnnual * usdkrw).toLocaleString()}</div>}
                       </div>
                       <div style={{ fontSize: 9, color: C.muted, marginTop: 5, lineHeight: 1.4 }}>
-                        {BASE_MAP[tk]} HV {hv5 != null && hv20 != null ? `5d ${hv5.toFixed(0)}%/20d ${hv20.toFixed(0)}%` : `${hv20?.toFixed(0) ?? "-"}%`}
+                        {BASE_MAP[tk]} HV {hv5 != null && hv20 != null ? `5d ${hv5.toFixed(0)}%/20d ${hv20.toFixed(0)}%` : `${hv20?.toFixed(0) ?? "-"}%`} <span style={{ color: "#7c3aed" }}>· IV프리미엄 ×1.1</span>
                         {ivBoost > 1 && <span style={{ color: "#dc2626", fontWeight: 700 }}> · IV×{ivBoost.toFixed(1)} (실적 D-{earningsDays})</span>}
                         {isCalibrated && <span style={{ color: "#0891b2", fontWeight: 700 }}> · 캘리 {capture.toFixed(2)}</span>}
                       </div>
@@ -1498,10 +1504,10 @@ export default function App() {
             <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "12px 14px", marginTop: 4 }}>
               <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 정밀 예측 계산 방식</div>
               <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
-                <strong style={{color:"#93c5fd"}}>① HV 블렌딩</strong> = HV5×60% + HV20×40% (단기 변동성 강조)<br/>
-                <strong style={{color:"#fca5a5"}}>② IV 부스트</strong>: 실적 D-7 이내 ×1.5 / D-14 이내 ×1.2<br/>
-                <strong style={{color:"#67e8f9"}}>③ 캘리브레이션</strong>: 검증 5건+ 시 종목별 자동 캡처율 조정<br/>
-                <strong style={{color:"#cbd5e1"}}>최종 공식</strong>: ETF가 × HV블렌딩 × √(7/365) × 0.4 × IV부스트 × 캡처율<br/>
+                <strong style={{color:"#93c5fd"}}>① HV 블렌딩 + HV20 floor</strong> = max(HV5×60% + HV20×40%, HV20) (단기 강조 + 하방 보호)<br/><strong style={{color:"#c4b5fd"}}>② Vol Premium</strong> = ×1.1 (옵션 IV ≈ HV × 1.1, 학계 평균)<br/>
+                <strong style={{color:"#fca5a5"}}>③ 실적 IV 부스트</strong>: 실적 D-7 이내 ×1.5 / D-14 이내 ×1.2<br/>
+                <strong style={{color:"#67e8f9"}}>④ 캘리브레이션</strong>: 검증 5건+ 시 종목별 자동 캡처율 조정<br/>
+                <strong style={{color:"#cbd5e1"}}>최종 공식</strong>: ETF가 × HV블렌딩(floor) × VolPremium × √(7/365) × 0.4 × IV부스트 × 캡처율<br/>
                 · 📊 직전 배당금: Yahoo Finance 최근 1회 실제 지급액<br/>
                 · 순위는 HV 기반 예상 수익률 기준
               </div>
