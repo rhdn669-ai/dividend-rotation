@@ -371,14 +371,27 @@ export default function App() {
         {/* ── 진입신호 탭 ── */}
         {tab === "signal" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
-              {["NVDY", "AMDW", "AMDY", "TSMY", "PLTW"].map((tk) => (
-                <button key={tk} onClick={() => setActiveTicker(tk)}
-                  style={{ flex: 1, padding: "11px", background: activeTicker === tk ? C.blue : C.card, border: `1px solid ${activeTicker === tk ? "#3b82f6" : C.border}`, borderRadius: 12, color: activeTicker === tk ? "#fff" : C.muted, fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all 0.15s" }}>
-                  {tk}
-                  {quotes[tk]?.ok && <div style={{ fontSize: 10, fontWeight: 400, marginTop: 3, opacity: 0.85 }}>${quotes[tk].price?.toFixed(2)}</div>}
-                </button>
-              ))}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>YieldMax · 월배당</div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                {["NVDY", "AMDY", "TSMY"].map((tk) => (
+                  <button key={tk} onClick={() => setActiveTicker(tk)}
+                    style={{ flex: 1, padding: "11px", background: activeTicker === tk ? C.blue : C.card, border: `1px solid ${activeTicker === tk ? "#3b82f6" : C.border}`, borderRadius: 12, color: activeTicker === tk ? "#fff" : C.muted, fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all 0.15s" }}>
+                    {tk}
+                    {quotes[tk]?.ok && <div style={{ fontSize: 10, fontWeight: 400, marginTop: 3, opacity: 0.85 }}>${quotes[tk].price?.toFixed(2)}</div>}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>Roundhill · 주배당</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["AMDW", "PLTW"].map((tk) => (
+                  <button key={tk} onClick={() => setActiveTicker(tk)}
+                    style={{ flex: 1, padding: "11px", background: activeTicker === tk ? C.blue : C.card, border: `1px solid ${activeTicker === tk ? "#3b82f6" : C.border}`, borderRadius: 12, color: activeTicker === tk ? "#fff" : C.muted, fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all 0.15s" }}>
+                    {tk}
+                    {quotes[tk]?.ok && <div style={{ fontSize: 10, fontWeight: 400, marginTop: 3, opacity: 0.85 }}>${quotes[tk].price?.toFixed(2)}</div>}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* 신호 카드 */}
