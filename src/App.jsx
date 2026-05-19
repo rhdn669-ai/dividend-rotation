@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.22";
+const APP_VERSION = "1.0.23";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -641,7 +641,8 @@ export default function App() {
     { id: "history", label: "📈 기록" },
     { id: "timezone", label: "🕐 시간대" },
     { id: "dividend", label: "💰 배당순위" },
-    { id: "predictlog", label: "🎯 예측이력" },
+    { id: "divaccuracy", label: "🎯 배당예측" },
+    { id: "entryvalid", label: "📊 진입검증" },
   ];
 
   const C = {
@@ -1294,11 +1295,9 @@ export default function App() {
         );
       })()}
 
-            {tab === "predictlog" && (() => {
+            {(tab === "divaccuracy" || tab === "entryvalid") && (() => {
         if (!predictionLog) return <div style={{ textAlign: "center", padding: 40, color: C.muted }}>불러오는 중...</div>;
         const allSnaps = [...(predictionLog.snapshots || [])].sort((a, b) => b.exDivDate.localeCompare(a.exDivDate));
-
-        // 종목별 요약 계산 (전체 뷰에서만 사용)
         const tickerSummary = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(t => {
           const items = allSnaps.filter(s => s.tk === t);
           const m = items.filter(s => s.actual != null);
@@ -1310,38 +1309,27 @@ export default function App() {
           const avgNet = validated.length ? validated.reduce((a, s) => a + s.netReturnPct, 0) / validated.length : null;
           return { tk: t, total: items.length, matched: m.length, avgErr, winRate, avgNet, validated: validated.length };
         });
-
-        // 필터 적용
         const snaps = predictFilter === "ALL" ? allSnaps : allSnaps.filter(s => s.tk === predictFilter);
         const matched = snaps.filter(s => s.actual != null);
         const pending = snaps.filter(s => s.actual == null);
+        const usdkrw = quotes["KRW=X"]?.price;
         const errors = matched.map(s => s.errorPct).filter(e => e != null);
         const absErrors = errors.map(Math.abs);
         const avgError = errors.length ? errors.reduce((a, b) => a + b, 0) / errors.length : null;
         const avgAbsError = absErrors.length ? absErrors.reduce((a, b) => a + b, 0) / absErrors.length : null;
         const hitRate = matched.length ? (absErrors.filter(e => e <= 20).length / matched.length) * 100 : null;
-        const usdkrw = quotes["KRW=X"]?.price;
         const validated = matched.filter(s => s.netReturnPct != null && s.entryPct != null);
-        const buckets = [
-          { range: "90~100%", min: 90, max: 101, label: "S/A+/A" },
-          { range: "80~89%", min: 80, max: 90, label: "B+" },
-          { range: "70~79%", min: 70, max: 80, label: "B" },
-          { range: "60~69%", min: 60, max: 70, label: "C+" },
-          { range: "<60%", min: 0, max: 60, label: "C/D/F" },
-        ].map(b => {
-          const items = validated.filter(s => s.entryPct >= b.min && s.entryPct < b.max);
-          const avgReturn = items.length ? items.reduce((a, s) => a + s.netReturnPct, 0) / items.length : null;
-          const winRate = items.length ? (items.filter(s => s.profitable).length / items.length) * 100 : null;
-          return { ...b, count: items.length, avgReturn, winRate };
-        });
+
+        const isAccuracy = tab === "divaccuracy";
+        const tabTitle = isAccuracy ? "🎯 배당예측 정확도" : "📊 진입검증 분석";
+
         return (
           <div style={{ padding: "0 2px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>🎯 예측 정확도 이력</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{tabTitle}</div>
               <div style={{ fontSize: 10, color: C.muted }}>{predictFilter === "ALL" ? `전체 ${allSnaps.length}건` : `${predictFilter} ${snaps.length}건`}</div>
             </div>
 
-            {/* 종목 필터 */}
             <div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>
               {["ALL", "NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(t => (
                 <button key={t} onClick={() => setPredictFilter(t)}
@@ -1361,126 +1349,188 @@ export default function App() {
                       style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 9px", background: C.bg, borderRadius: 7, cursor: "pointer" }}>
                       <span style={{ fontSize: 12, fontWeight: 800, color: C.text, minWidth: 50 }}>{s.tk}</span>
                       <span style={{ fontSize: 10, color: C.muted, minWidth: 50 }}>{s.total}건</span>
-                      <span style={{ fontSize: 10, color: s.avgErr == null ? C.muted : s.avgErr <= 15 ? C.green : s.avgErr <= 30 ? C.amber : C.red, minWidth: 60, textAlign: "right" }}>
-                        오차 {s.avgErr != null ? `±${s.avgErr.toFixed(1)}%` : "-"}
-                      </span>
-                      <span style={{ fontSize: 10, color: s.avgNet == null ? C.muted : s.avgNet > 0 ? C.green : C.red, minWidth: 60, textAlign: "right" }}>
-                        평균 {s.avgNet != null ? `${s.avgNet > 0 ? "+" : ""}${s.avgNet.toFixed(2)}%` : "-"}
-                      </span>
-                      <span style={{ fontSize: 10, color: s.winRate == null ? C.muted : s.winRate >= 70 ? C.green : s.winRate >= 50 ? C.amber : C.red, minWidth: 50, textAlign: "right" }}>
-                        승률 {s.winRate != null ? `${s.winRate.toFixed(0)}%` : "-"}
-                      </span>
+                      {isAccuracy ? (
+                        <>
+                          <span style={{ fontSize: 10, color: s.avgErr == null ? C.muted : s.avgErr <= 15 ? C.green : s.avgErr <= 30 ? C.amber : C.red, flex: 1, textAlign: "right" }}>
+                            평균 오차 {s.avgErr != null ? `±${s.avgErr.toFixed(1)}%` : "-"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: 10, color: s.avgNet == null ? C.muted : s.avgNet > 0 ? C.green : C.red, flex: 1, textAlign: "right" }}>
+                            평균 {s.avgNet != null ? `${s.avgNet > 0 ? "+" : ""}${s.avgNet.toFixed(2)}%` : "-"}
+                          </span>
+                          <span style={{ fontSize: 10, color: s.winRate == null ? C.muted : s.winRate >= 70 ? C.green : s.winRate >= 50 ? C.amber : C.red, minWidth: 60, textAlign: "right" }}>
+                            승률 {s.winRate != null ? `${s.winRate.toFixed(0)}%` : "-"}
+                          </span>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 9, color: C.muted, marginTop: 6, textAlign: "center" }}>종목 행 클릭 시 해당 종목 상세 보기</div>
+                <div style={{ fontSize: 9, color: C.muted, marginTop: 6, textAlign: "center" }}>종목 행 클릭 시 상세 보기</div>
               </div>
             )}
 
-            {/* 진입 검증 분석 */}
-            {validated.length > 0 && (
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 0.3 }}>📈 진입점수 vs 실제수익 (검증: {validated.length}건)</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  {buckets.map(b => {
-                    const retColor = b.avgReturn == null ? C.muted : b.avgReturn > 0.5 ? C.green : b.avgReturn > -0.5 ? C.amber : C.red;
-                    return (
-                      <div key={b.range} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 9px", background: C.bg, borderRadius: 7 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: C.text, minWidth: 70 }}>{b.range}</span>
-                        <span style={{ fontSize: 9, color: C.muted, minWidth: 50 }}>{b.label}</span>
-                        <span style={{ fontSize: 10, color: C.muted, minWidth: 36 }}>{b.count}건</span>
-                        {b.count > 0 ? (
-                          <>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: retColor, minWidth: 50, textAlign: "right" }}>{b.avgReturn > 0 ? "+" : ""}{b.avgReturn.toFixed(2)}%</span>
-                            <span style={{ fontSize: 10, color: b.winRate >= 70 ? C.green : b.winRate >= 50 ? C.amber : C.red, minWidth: 50, textAlign: "right" }}>승률 {b.winRate.toFixed(0)}%</span>
-                          </>
-                        ) : <span style={{ fontSize: 10, color: C.muted, flex: 1, textAlign: "right" }}>데이터 없음</span>}
-                      </div>
-                    );
-                  })}
+            {/* === 배당예측 정확도 탭 === */}
+            {isAccuracy && (
+              <>
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 0.3 }}>예측 vs 실제 통계</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px" }}>
+                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>총 스냅샷</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{snaps.length}회</div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>매칭 {matched.length} · 대기 {pending.length}</div>
+                    </div>
+                    <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px" }}>
+                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>평균 절대오차</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: avgAbsError != null && avgAbsError <= 15 ? C.green : avgAbsError != null && avgAbsError <= 30 ? C.amber : C.red }}>{avgAbsError != null ? `±${avgAbsError.toFixed(1)}%` : "-"}</div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>편향 {avgError != null ? `${avgError > 0 ? "+" : ""}${avgError.toFixed(1)}%` : "-"}</div>
+                    </div>
+                    <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px", gridColumn: "span 2" }}>
+                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>적중률 (±20% 이내)</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: hitRate != null && hitRate >= 70 ? C.green : hitRate != null && hitRate >= 50 ? C.amber : C.red }}>{hitRate != null ? hitRate.toFixed(0) + "%" : "-"}</div>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 9, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
-                  · 순수익 = (실제배당 + 배당락후가격 - 진입가) / 진입가 × 100<br/>
-                  · 높은 진입점수일수록 양의 평균 수익이면 점수 시스템이 유효함을 의미
-                </div>
-              </div>
+              </>
             )}
 
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 0.3 }}>전체 통계</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px" }}>
-                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>총 스냅샷</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{snaps.length}회</div>
-                  <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>매칭 {matched.length} · 대기 {pending.length}</div>
+            {/* === 진입검증 탭 === */}
+            {!isAccuracy && validated.length > 0 && (() => {
+              const buckets = [
+                { range: "90~100%", min: 90, max: 101, label: "S/A+/A" },
+                { range: "80~89%", min: 80, max: 90, label: "B+" },
+                { range: "70~79%", min: 70, max: 80, label: "B" },
+                { range: "60~69%", min: 60, max: 70, label: "C+" },
+                { range: "<60%", min: 0, max: 60, label: "C/D/F" },
+              ].map(b => {
+                const items = validated.filter(s => s.entryPct >= b.min && s.entryPct < b.max);
+                const avgRet = items.length ? items.reduce((a, s) => a + s.netReturnPct, 0) / items.length : null;
+                const winRate = items.length ? (items.filter(s => s.profitable).length / items.length) * 100 : null;
+                return { ...b, count: items.length, avgRet, winRate };
+              });
+              return (
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 0.3 }}>📈 진입점수 vs 실제수익 (검증: {validated.length}건)</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    {buckets.map(b => {
+                      const retColor = b.avgRet == null ? C.muted : b.avgRet > 0.5 ? C.green : b.avgRet > -0.5 ? C.amber : C.red;
+                      return (
+                        <div key={b.range} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 9px", background: C.bg, borderRadius: 7 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.text, minWidth: 70 }}>{b.range}</span>
+                          <span style={{ fontSize: 9, color: C.muted, minWidth: 50 }}>{b.label}</span>
+                          <span style={{ fontSize: 10, color: C.muted, minWidth: 36 }}>{b.count}건</span>
+                          {b.count > 0 ? (
+                            <>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: retColor, minWidth: 50, textAlign: "right" }}>{b.avgRet > 0 ? "+" : ""}{b.avgRet.toFixed(2)}%</span>
+                              <span style={{ fontSize: 10, color: b.winRate >= 70 ? C.green : b.winRate >= 50 ? C.amber : C.red, minWidth: 50, textAlign: "right" }}>승률 {b.winRate.toFixed(0)}%</span>
+                            </>
+                          ) : <span style={{ fontSize: 10, color: C.muted, flex: 1, textAlign: "right" }}>데이터 없음</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 9, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+                    · 순수익 = (실제배당 + 배당락후가격 - 진입가) / 진입가 × 100<br/>
+                    · 높은 점수일수록 양의 평균 수익 → 점수 시스템 유효
+                  </div>
                 </div>
-                <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px" }}>
-                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>평균 절대오차</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: avgAbsError != null && avgAbsError <= 15 ? C.green : avgAbsError != null && avgAbsError <= 30 ? C.amber : C.red }}>{avgAbsError != null ? `±${avgAbsError.toFixed(1)}%` : "-"}</div>
-                  <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>편향 {avgError != null ? `${avgError > 0 ? "+" : ""}${avgError.toFixed(1)}%` : "-"}</div>
-                </div>
-                <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px", gridColumn: "span 2" }}>
-                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>적중률 (±20% 이내)</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: hitRate != null && hitRate >= 70 ? C.green : hitRate != null && hitRate >= 50 ? C.amber : C.red }}>{hitRate != null ? hitRate.toFixed(0) + "%" : "-"}</div>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
+
             {snaps.length === 0 && (
               <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 12 }}>
-                {predictFilter === "ALL" ? "아직 수집된 스냅샷이 없습니다." : `${predictFilter} 종목 데이터가 없습니다.`}<br/><br/>
+                {predictFilter === "ALL" ? "아직 수집된 스냅샷이 없습니다." : `${predictFilter} 데이터 없음.`}<br/><br/>
                 매주 수요일/금요일 KST 04:30에 자동 캡처됩니다.<br/>(수: NVDY/AMDY/TSMY · 금: AMDW/PLTW)
               </div>
             )}
+
+            {/* 개별 스냅샷 카드 (탭에 따라 다른 정보 강조) */}
             {snaps.map((s, i) => {
               const isPending = s.actual == null;
               const errAbs = s.errorPct != null ? Math.abs(s.errorPct) : null;
               const accColor = errAbs == null ? C.muted : errAbs <= 10 ? C.green : errAbs <= 25 ? C.amber : C.red;
+              const netColor = s.netReturnPct == null ? C.muted : s.profitable ? C.green : C.red;
+              const cardLeftColor = isAccuracy
+                ? (isPending ? C.muted : accColor)
+                : (s.netReturnPct == null ? C.muted : netColor);
               return (
-                <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderLeft: `4px solid ${isPending ? C.muted : accColor}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderLeft: `4px solid ${cardLeftColor}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.tk} <span style={{ fontSize: 10, color: C.muted, fontWeight: 400 }}>· 배당락 {s.exDivDate}</span></div>
-                      <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>HV20: {s.hv20?.toFixed(1)}% · VIX: {s.vix?.toFixed(2)} · 진입가 ${s.etfPrice?.toFixed(2)} {s.entryPct != null && `· 점수 ${s.entryPct}% (${s.entryGrade})`}</div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>
+                        {isAccuracy
+                          ? `HV20: ${s.hv20?.toFixed(1)}% · VIX: ${s.vix?.toFixed(2)} · 진입가 $${s.etfPrice?.toFixed(2)}`
+                          : `진입점수 ${s.entryPct}% (${s.entryGrade}) · VIX ${s.vix?.toFixed(2)} · 진입가 $${s.etfPrice?.toFixed(2)}`}
+                      </div>
                     </div>
-                    {isPending ? (
-                      <span style={{ background: "#e2e8f0", color: "#475569", borderRadius: 5, padding: "2px 8px", fontSize: 9, fontWeight: 700 }}>대기중</span>
+                    {isAccuracy ? (
+                      isPending
+                        ? <span style={{ background: "#e2e8f0", color: "#475569", borderRadius: 5, padding: "2px 8px", fontSize: 9, fontWeight: 700 }}>대기중</span>
+                        : <span style={{ background: `${accColor}25`, color: accColor, borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 800 }}>{s.errorPct > 0 ? "+" : ""}{s.errorPct?.toFixed(1)}%</span>
                     ) : (
-                      <span style={{ background: `${accColor}25`, color: accColor, borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 800 }}>{s.errorPct > 0 ? "+" : ""}{s.errorPct?.toFixed(1)}%</span>
+                      s.netReturnPct != null
+                        ? <span style={{ background: `${netColor}25`, color: netColor, borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 800 }}>{s.netReturnPct > 0 ? "+" : ""}{s.netReturnPct.toFixed(2)}%</span>
+                        : <span style={{ background: "#e2e8f0", color: "#475569", borderRadius: 5, padding: "2px 8px", fontSize: 9, fontWeight: 700 }}>대기중</span>
                     )}
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                    <div style={{ background: "#f0f9ff", borderRadius: 7, padding: "7px 10px", border: "1px solid #bae6fd" }}>
-                      <div style={{ fontSize: 9, color: "#0c4a6e", fontWeight: 600, marginBottom: 2 }}>🎯 예상</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#075985" }}>${s.predicted?.toFixed(4)}</div>
-                      {usdkrw && <div style={{ fontSize: 10, color: "#0c4a6e" }}>₩{Math.round(s.predicted * usdkrw).toLocaleString()}</div>}
+
+                  {isAccuracy ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      <div style={{ background: "#f0f9ff", borderRadius: 7, padding: "7px 10px", border: "1px solid #bae6fd" }}>
+                        <div style={{ fontSize: 9, color: "#0c4a6e", fontWeight: 600, marginBottom: 2 }}>🎯 예상</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#075985" }}>${s.predicted?.toFixed(4)}</div>
+                        {usdkrw && <div style={{ fontSize: 10, color: "#0c4a6e" }}>₩{Math.round(s.predicted * usdkrw).toLocaleString()}</div>}
+                      </div>
+                      <div style={{ background: isPending ? C.bg : "#f0fdf4", borderRadius: 7, padding: "7px 10px", border: `1px solid ${isPending ? C.border : "#bbf7d0"}` }}>
+                        <div style={{ fontSize: 9, color: isPending ? C.muted : "#166534", fontWeight: 600, marginBottom: 2 }}>📊 실제</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: isPending ? C.muted : "#15803d" }}>{isPending ? "대기중" : `$${s.actual?.toFixed(4)}`}</div>
+                        {!isPending && usdkrw && <div style={{ fontSize: 10, color: "#166534" }}>₩{Math.round(s.actual * usdkrw).toLocaleString()}</div>}
+                      </div>
                     </div>
-                    <div style={{ background: isPending ? C.bg : "#f0fdf4", borderRadius: 7, padding: "7px 10px", border: `1px solid ${isPending ? C.border : "#bbf7d0"}` }}>
-                      <div style={{ fontSize: 9, color: isPending ? C.muted : "#166534", fontWeight: 600, marginBottom: 2 }}>📊 실제</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: isPending ? C.muted : "#15803d" }}>{isPending ? "대기중" : `$${s.actual?.toFixed(4)}`}</div>
-                      {!isPending && usdkrw && <div style={{ fontSize: 10, color: "#166534" }}>₩{Math.round(s.actual * usdkrw).toLocaleString()}</div>}
-                    </div>
-                  </div>
-                  {s.netReturnPct != null && (
-                    <div style={{ marginTop: 6, padding: "6px 10px", background: s.profitable ? "#dcfce7" : "#fee2e2", borderRadius: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: s.profitable ? "#166534" : "#991b1b" }}>💰 진입 후 순수익</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: s.profitable ? "#15803d" : "#b91c1c" }}>{s.netReturnPct > 0 ? "+" : ""}{s.netReturnPct.toFixed(2)}%</span>
+                  ) : (
+                    // 진입검증 카드: 진입가 / 배당락후가 / 순수익
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                      <div style={{ background: C.bg, borderRadius: 7, padding: "7px 10px" }}>
+                        <div style={{ fontSize: 9, color: C.muted, fontWeight: 600, marginBottom: 2 }}>진입가 (D-1)</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>${s.etfPrice?.toFixed(2)}</div>
+                      </div>
+                      <div style={{ background: C.bg, borderRadius: 7, padding: "7px 10px" }}>
+                        <div style={{ fontSize: 9, color: C.muted, fontWeight: 600, marginBottom: 2 }}>배당락후가</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: s.capitalChangePct == null ? C.muted : s.capitalChangePct >= 0 ? C.green : C.red }}>
+                          {s.priceAfterExDiv != null ? `$${s.priceAfterExDiv.toFixed(2)}` : "대기"}
+                        </div>
+                        {s.capitalChangePct != null && <div style={{ fontSize: 9, color: s.capitalChangePct >= 0 ? C.green : C.red }}>{s.capitalChangePct > 0 ? "+" : ""}{s.capitalChangePct.toFixed(2)}%</div>}
+                      </div>
+                      <div style={{ background: s.profitable ? "#dcfce7" : s.profitable === false ? "#fee2e2" : C.bg, borderRadius: 7, padding: "7px 10px" }}>
+                        <div style={{ fontSize: 9, color: s.profitable ? "#166534" : s.profitable === false ? "#991b1b" : C.muted, fontWeight: 600, marginBottom: 2 }}>💰 순수익</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: netColor }}>
+                          {s.netReturnPct != null ? `${s.netReturnPct > 0 ? "+" : ""}${s.netReturnPct.toFixed(2)}%` : "대기"}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
               );
             })}
+
             <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "12px 14px", marginTop: 10 }}>
               <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 자동 캡처 안내</div>
               <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
-                · GitHub Actions가 3시간마다 자동 실행 (KST 04:30/07:30/10:30/...)<br/>
+                · GitHub Actions가 3시간마다 자동 실행<br/>
                 · 수: NVDY/AMDY/TSMY · 금: AMDW/PLTW 예측 캡처<br/>
-                · 배당 지급 후 자동 매칭<br/>
+                · 배당 지급 후 자동 매칭 + 순수익 계산 (ex-div + 1일)<br/>
                 · {predictionLog.updatedAt ? `업데이트: ${new Date(predictionLog.updatedAt).toLocaleString("ko-KR")}` : "초기 상태"}
               </div>
             </div>
           </div>
         );
       })()}
+
+            })()}
 
       {tab === "timezone" && (
         <div style={{ padding: "0 2px" }}>
