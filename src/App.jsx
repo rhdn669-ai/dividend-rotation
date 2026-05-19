@@ -333,20 +333,7 @@ export default function App() {
     setQuotes(map);
     setLastUpdate(new Date());
     setLoading(false);
-    const snap = {
-      ts: new Date().toISOString(),
-      scores: Object.fromEntries(
-        ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(tk => [
-          tk, evaluateConditions(map, tk, events, manualVix).pct
-        ])
-      ),
-    };
-    setScoreHistory(prev => {
-      const updated = [snap, ...prev].slice(0, 200);
-      storage.set(STORAGE_KEYS.scoreHistory, updated);
-      return updated;
-    });
-  }, [events, manualVix]);
+  }, []);
 
   useEffect(() => {
     refresh();
@@ -365,6 +352,22 @@ export default function App() {
     [events, todayStr]
   );
   const logStats = useMemo(() => calcLogStats(rotationLog), [rotationLog]);
+
+  const saveSnapshot = useCallback(() => {
+    const snap = {
+      ts: new Date().toISOString(),
+      scores: Object.fromEntries(
+        ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(tk => [
+          tk, evaluateConditions(quotes, tk, events, manualVix).pct
+        ])
+      ),
+    };
+    setScoreHistory(prev => {
+      const updated = [snap, ...prev].slice(0, 200);
+      storage.set(STORAGE_KEYS.scoreHistory, updated);
+      return updated;
+    });
+  }, [quotes, events, manualVix]);
   const allEvaluations = useMemo(
     () => ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(tk => ({
       ticker: tk, ...evaluateConditions(quotes, tk, events, manualVix),
@@ -461,7 +464,11 @@ export default function App() {
 
             {/* 전체 비교 */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 7, letterSpacing: 0.3 }}>전체 비교 — 클릭하면 상세 확인</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: 0.3 }}>전체 비교 — 클릭하면 상세 확인</div>
+                <button onClick={saveSnapshot}
+                  style={{ background: C.blue, border: "none", borderRadius: 7, color: "#fff", padding: "4px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>📥 저장</button>
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                 {[...allEvaluations].sort((a, b) => b.pct - a.pct).map((ev) => (
                   <div key={ev.ticker} onClick={() => setActiveTicker(ev.ticker)}
