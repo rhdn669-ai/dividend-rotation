@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.20";
+const APP_VERSION = "1.0.21";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -1417,7 +1417,7 @@ export default function App() {
             <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "12px 14px", marginTop: 10 }}>
               <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 자동 캡처 안내</div>
               <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
-                · GitHub Actions가 매일 KST 04:30에 자동 실행<br/>
+                · GitHub Actions가 3시간마다 자동 실행 (KST 04:30/07:30/10:30/...)<br/>
                 · 수: NVDY/AMDY/TSMY · 금: AMDW/PLTW 예측 캡처<br/>
                 · 배당 지급 후 자동 매칭<br/>
                 · {predictionLog.updatedAt ? `업데이트: ${new Date(predictionLog.updatedAt).toLocaleString("ko-KR")}` : "초기 상태"}

@@ -132,8 +132,11 @@ async function main() {
   const todayET = nowEt.toISOString().slice(0, 10);
   console.log(`ET: ${nowEt.toString()}, dow=${dow}`);
 
-  const captureY = dow === 3;
-  const captureW = dow === 5;
+  const hour = nowEt.getHours();
+  // 미국 장 마감 직전(14:00~16:00 ET) 캡처. 다른 시간은 매칭만 수행
+  const inCaptureWindow = hour >= 14 && hour <= 16;
+  const captureY = dow === 3 && inCaptureWindow;
+  const captureW = dow === 5 && inCaptureWindow;
   let changed = false;
 
   // 모든 티커 데이터를 한 번에 받아두기 (재사용)
@@ -214,7 +217,7 @@ async function main() {
       // 간단히: 현재 시점이 ex-div + 2일 이상 지났으면 현재 종가 사용
       const exD = new Date(snap.exDivDate);
       const daysSince = (nowEt - exD) / 86400000;
-      if (daysSince >= 2) {
+      if (daysSince >= 1) {
         const priceAfter = etf.price;
         const capitalChange = ((priceAfter - snap.etfPrice) / snap.etfPrice) * 100;
         const divReturn = (snap.actual / snap.etfPrice) * 100;
@@ -224,7 +227,7 @@ async function main() {
         snap.netReturnPct = +netReturn.toFixed(2);
         snap.profitable = netReturn > 0;
         changed = true;
-        console.log(`Outcome ${snap.tk}: priceAfter $${priceAfter.toFixed(2)}, net ${netReturn.toFixed(2)}% (${snap.profitable ? '+' : '-'})`);
+        console.log(`Outcome ${snap.tk}: T+${daysSince.toFixed(1)}d, priceAfter $${priceAfter.toFixed(2)}, net ${netReturn.toFixed(2)}% (${snap.profitable ? '+' : '-'})`);
       }
     }
   }
