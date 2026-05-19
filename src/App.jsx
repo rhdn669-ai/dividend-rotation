@@ -66,12 +66,14 @@ async function fetchQuote(ticker) {
     const avgVol20 = recentVols.length > 0 ? recentVols.reduce((a, b) => a + b, 0) / recentVols.length : null;
     const todayVol = meta.regularMarketVolume || volumes[volumes.length - 1] || null;
     const volRatio = avgVol20 && todayVol ? todayVol / avgVol20 : null;
-    const prevClose = meta.previousClose || meta.chartPreviousClose;
+    const prevClose = meta.previousClose ?? null;
     return {
       ticker, ok: true,
       price: meta.regularMarketPrice,
       prevClose,
-      changePct: meta.regularMarketChangePercent ?? ((meta.regularMarketPrice - prevClose) / prevClose) * 100,
+      changePct: meta.regularMarketChangePercent != null
+        ? meta.regularMarketChangePercent
+        : (prevClose ? ((meta.regularMarketPrice - prevClose) / prevClose) * 100 : 0),
       marketState: meta.marketState,
       preMarketPrice: meta.preMarketPrice,
       preMarketChange: meta.preMarketPrice ? ((meta.preMarketPrice - meta.regularMarketPrice) / meta.regularMarketPrice) * 100 : null,
