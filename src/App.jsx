@@ -1,9 +1,38 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.23";
+const APP_VERSION = "1.0.24";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
+
+// ─── 부분 점수 헬퍼 (각 조건마다 0~만점 사이 그라데이션 점수) ────────────────
+function pScore(value, table) {
+  // table: [[threshold, score], ...] 첫 매칭 시 score 반환
+  if (value == null || isNaN(value)) return 0;
+  for (const [thresh, score] of table) if (value <= thresh) return score;
+  return 0;
+}
+
+function vixPScore(v) {
+  if (v == null || isNaN(v)) return 0;
+  if (v >= 16 && v <= 22) return 5;       // 이상
+  if (v >= 14 && v < 16) return 4;        // 약간 낮음
+  if (v > 22 && v <= 25) return 4;        // 약간 높음
+  if (v > 25 && v <= 28) return 2.5;      // 변동 큼
+  if (v >= 12 && v < 14) return 2;        // 너무 낮음
+  if (v > 28 && v < 30) return 1;         // 경계
+  return 0;
+}
+
+function rsiPScore(r) {
+  if (r == null || isNaN(r)) return 0;
+  const d = Math.abs(r - 50);
+  if (d <= 10) return 3;     // 40~60
+  if (d <= 15) return 2.5;   // 35~65
+  if (d <= 20) return 1.5;   // 30~70
+  if (d <= 25) return 0.5;   // 25~75
+  return 0;
+}
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
 
 // 기본 이벤트 데이터 (Claude Code에서 분리 시 src/data/events.js로 이동)
@@ -153,6 +182,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   results.push({
     label: "CPI/FOMC 이벤트 없음",
     ok: evOk,
+    partialScore: evOk ? 5 : 0,
     detail: todayEv ? `오늘 ${todayEv.label}` : tmrEv ? `내일 ${tmrEv.label}` : "이벤트 없음",
     priority: "critical",
   });
@@ -169,6 +199,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   results.push({
     label: ["NVDA","AMD","TSM"].includes(targetCo) ? `${targetCo}/TSMC 실적 발표 임박 없음` : `${targetCo} 실적 발표 임박 없음`,
     ok: earningsOk,
+    partialScore: earningsOk ? 5 : 0,
     detail: earningsEv ? `${earningsEv.date} ${earningsEv.label}` : "2일 이내 실적 발표 없음",
     priority: "critical",
   });
@@ -178,20 +209,24 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   const baseQ = quotes[targetCo];
   const baseName = targetCo;
   if (baseQ?.ok && baseQ.preMarketChange != null) {
-    const ok = Math.abs(baseQ.preMarketChange) <= 2;
+    const abs = Math.abs(baseQ.preMarketChange);
+    const ps = pScore(abs, [[0.5, 4], [1.0, 3.5], [1.5, 2.5], [2.0, 1.5], [3.0, 0.5]]);
+    const ok = abs <= 2;
     results.push({
       label: `${baseName} 시간외 ±2% 이내`,
-      ok,
-      detail: `시간외 ${baseQ.preMarketChange > 0 ? "+" : ""}${baseQ.preMarketChange?.toFixed(2)}%`,
+      ok, partialScore: ps,
+      detail: `시간외 ${baseQ.preMarketChange > 0 ? "+" : ""}${baseQ.preMarketChange?.toFixed(2)}% · ${ps.toFixed(1)}/4점`,
       priority: "high",
     });
     total++; if (ok) score++;
   } else if (baseQ?.ok) {
-    const ok = Math.abs(baseQ.changePct) <= 3;
+    const abs = Math.abs(baseQ.changePct);
+    const ps = pScore(abs, [[1.0, 4], [2.0, 3], [3.0, 1.5], [4.0, 0.5]]);
+    const ok = abs <= 3;
     results.push({
       label: `${baseName} 당일 변동 ±3% 이내`,
-      ok,
-      detail: `당일 ${baseQ.changePct > 0 ? "+" : ""}${baseQ.changePct?.toFixed(2)}%`,
+      ok, partialScore: ps,
+      detail: `당일 ${baseQ.changePct > 0 ? "+" : ""}${baseQ.changePct?.toFixed(2)}% · ${ps.toFixed(1)}/4점`,
       priority: "high",
     });
     total++; if (ok) score++;
@@ -203,11 +238,13 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   // 4. ETF 자체 변동
   const tq = quotes[targetTicker];
   if (tq?.ok) {
-    const ok = Math.abs(tq.changePct) <= 4;
+    const abs = Math.abs(tq.changePct);
+    const ps = pScore(abs, [[1.0, 2], [2.0, 1.5], [3.0, 1], [4.0, 0.5]]);
+    const ok = abs <= 4;
     results.push({
       label: `${targetTicker} 변동 ±4% 이내`,
-      ok,
-      detail: `${tq.changePct > 0 ? "+" : ""}${tq.changePct?.toFixed(2)}%`,
+      ok, partialScore: ps,
+      detail: `${tq.changePct > 0 ? "+" : ""}${tq.changePct?.toFixed(2)}% · ${ps.toFixed(1)}/2점`,
       priority: "low",
     });
     total++; if (ok) score++;
@@ -216,11 +253,17 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   // 5. QQQ 나스닥
   const qqqQ = quotes["QQQ"];
   if (qqqQ?.ok) {
-    const ok = qqqQ.changePct > -2;
+    const c = qqqQ.changePct;
+    let ps = 0;
+    if (c >= 1) ps = 3;
+    else if (c >= 0) ps = 2.5;
+    else if (c >= -1) ps = 2;
+    else if (c >= -2) ps = 1;
+    const ok = c > -2;
     results.push({
       label: "나스닥(QQQ) -2% 이상",
-      ok,
-      detail: `QQQ ${qqqQ.changePct > 0 ? "+" : ""}${qqqQ.changePct?.toFixed(2)}%`,
+      ok, partialScore: ps,
+      detail: `QQQ ${c > 0 ? "+" : ""}${c?.toFixed(2)}% · ${ps.toFixed(1)}/3점`,
       priority: "mid",
     });
     total++; if (ok) score++;
@@ -230,28 +273,34 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   const vixQ = quotes["^VIX"];
   const vixVal = vixQ?.ok ? vixQ.price : (manualVix ? parseFloat(manualVix) : null);
   if (vixVal != null && !isNaN(vixVal)) {
-    const ok = vixVal >= 15 && vixVal < 30;
-    const tag = vixVal >= 30 ? " ⚠️극도공포 회피" : vixVal >= 25 ? " 고변동 주의" : vixVal >= 15 ? " 프리미엄 최적" : " 프리미엄 낮음";
+    const ps = vixPScore(vixVal);
+    const ok = ps >= 2.5;  // 부분점수 50% 이상이면 OK
+    const tag = vixVal >= 30 ? " ⚠️극도공포 회피" : vixVal >= 25 ? " 고변동 주의" : vixVal >= 22 ? " 약간 높음" : vixVal >= 16 ? " 이상적" : vixVal >= 14 ? " 약간 낮음" : " 너무 낮음";
     results.push({
       label: "VIX 15~30 (프리미엄 적정)",
-      ok,
-      detail: `VIX ${vixVal.toFixed(2)}${!vixQ?.ok ? " (수동)" : ""}${tag}`,
+      ok, partialScore: ps,
+      detail: `VIX ${vixVal.toFixed(2)}${!vixQ?.ok ? " (수동)" : ""}${tag} · ${ps.toFixed(1)}/5점`,
       priority: "critical",
     });
     total++; if (ok) score++;
   } else {
-    results.push({ label: "VIX 15~30 (프리미엄 적정)", ok: false, detail: "수동 입력 필요", priority: "critical" });
+    results.push({ label: "VIX 15~30 (프리미엄 적정)", ok: false, partialScore: 0, detail: "수동 입력 필요", priority: "critical" });
     total++;
   }
 
   // 7. ETF 거래량 정상 (0.5~2.5배, 조건7+④ 통합)
   if (tq?.ok && tq.volRatio != null) {
-    const ok = tq.volRatio >= 0.5 && tq.volRatio <= 2.5;
-    const tag = tq.volRatio > 2.5 ? " ⚠️폭증" : tq.volRatio > 1.8 ? " 증가주의" : tq.volRatio < 0.5 ? " 너무적음" : " 정상";
+    const vr = tq.volRatio;
+    let ps = 0;
+    if (vr >= 0.8 && vr <= 1.5) ps = 2;
+    else if (vr >= 0.5 && vr <= 2.0) ps = 1.5;
+    else if (vr >= 0.3 && vr <= 2.5) ps = 1;
+    const ok = vr >= 0.5 && vr <= 2.5;
+    const tag = vr > 2.5 ? " ⚠️폭증" : vr > 1.8 ? " 증가주의" : vr < 0.5 ? " 너무적음" : " 정상";
     results.push({
-      label: `${targetTicker} 거래량 정상 (평균 대비 0.5~2.5배)`,
-      ok,
-      detail: `오늘 ${fmtVol(tq.todayVol)} / 평균 ${fmtVol(tq.avgVol20)} (${tq.volRatio.toFixed(2)}배)${tag}`,
+      label: `${targetTicker} 거래량 정상`,
+      ok, partialScore: ps,
+      detail: `오늘 ${fmtVol(tq.todayVol)} / 평균 (${vr.toFixed(2)}배)${tag} · ${ps.toFixed(1)}/2점`,
       priority: "low",
     });
     total++; if (ok) score++;
@@ -259,11 +308,17 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
 
   // 8. 기준 종목 거래량 급증
   if (baseQ?.ok && baseQ.volRatio != null) {
-    const ok = baseQ.volRatio < 2.0;
+    const vr = baseQ.volRatio;
+    let ps = 0;
+    if (vr < 1.0) ps = 2;
+    else if (vr < 1.5) ps = 1.5;
+    else if (vr < 2.0) ps = 1;
+    else if (vr < 2.5) ps = 0.5;
+    const ok = vr < 2.0;
     results.push({
       label: `${baseName} 거래량 급증 없음`,
-      ok,
-      detail: `${baseName} 평균 대비 ${baseQ.volRatio.toFixed(2)}배${baseQ.volRatio >= 2 ? " ⚠️급등락 가능성" : " 정상"}`,
+      ok, partialScore: ps,
+      detail: `${baseName} 평균 대비 ${vr.toFixed(2)}배${vr >= 2 ? " ⚠️급등락" : " 정상"} · ${ps.toFixed(1)}/2점`,
       priority: "low",
     });
     total++; if (ok) score++;
@@ -271,12 +326,18 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
 
   // ③ 기준 종목 5일 모멘텀
   if (baseQ?.ok && baseQ.fiveDayReturn != null) {
-    const ok = baseQ.fiveDayReturn > -3;
-    const tag = baseQ.fiveDayReturn > 5 ? " 강세" : baseQ.fiveDayReturn > 0 ? " 양호" : baseQ.fiveDayReturn > -3 ? " 약세" : " 급락";
+    const r = baseQ.fiveDayReturn;
+    let ps = 0;
+    if (r >= 3) ps = 3;
+    else if (r >= 0) ps = 2.5;
+    else if (r >= -1.5) ps = 1.5;
+    else if (r >= -3) ps = 0.5;
+    const ok = r > -3;
+    const tag = r > 5 ? " 강세" : r > 0 ? " 양호" : r > -3 ? " 약세" : " 급락";
     results.push({
       label: `${baseName} 5일 모멘텀`,
-      ok,
-      detail: `최근 5거래일 ${baseQ.fiveDayReturn > 0 ? "+" : ""}${baseQ.fiveDayReturn.toFixed(2)}%${tag}`,
+      ok, partialScore: ps,
+      detail: `최근 5거래일 ${r > 0 ? "+" : ""}${r.toFixed(2)}%${tag} · ${ps.toFixed(1)}/3점`,
       priority: "mid",
     });
     total++; if (ok) score++;
@@ -286,12 +347,13 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
 
   // RSI (기준 종목 14일 — 과매수/과매도 회피)
   if (baseQ?.ok && baseQ.rsi14 != null) {
-    const ok = baseQ.rsi14 >= 30 && baseQ.rsi14 <= 70;
-    const tag = baseQ.rsi14 > 70 ? " 과매수 주의" : baseQ.rsi14 < 30 ? " 과매도 (반등 가능)" : " 적정 구간";
+    const ps = rsiPScore(baseQ.rsi14);
+    const ok = ps >= 1.5;
+    const tag = baseQ.rsi14 > 70 ? " 과매수" : baseQ.rsi14 < 30 ? " 과매도" : baseQ.rsi14 >= 40 && baseQ.rsi14 <= 60 ? " 이상적" : " 양호";
     results.push({
       label: `${baseName} RSI 30~70`,
-      ok,
-      detail: `RSI ${baseQ.rsi14.toFixed(1)}${tag}`,
+      ok, partialScore: ps,
+      detail: `RSI ${baseQ.rsi14.toFixed(1)}${tag} · ${ps.toFixed(1)}/3점`,
       priority: "mid",
     });
     total++; if (ok) score++;
@@ -299,12 +361,17 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
 
   // MA20 (기준 종목 20일 이평선 위 = 상승 추세)
   if (baseQ?.ok && baseQ.aboveMA20 != null) {
-    const ok = baseQ.aboveMA20;
     const diff = baseQ.ma20 ? ((baseQ.price - baseQ.ma20) / baseQ.ma20 * 100) : 0;
+    let ps = 0;
+    if (diff >= 3) ps = 4;
+    else if (diff >= 1) ps = 3.5;
+    else if (diff >= 0) ps = 2.5;
+    else if (diff >= -1) ps = 1;
+    const ok = diff >= 0;
     results.push({
       label: `${baseName} MA20 위 (상승 추세)`,
-      ok,
-      detail: `현재 $${baseQ.price?.toFixed(2)} / MA20 $${baseQ.ma20?.toFixed(2)} (${diff > 0 ? "+" : ""}${diff.toFixed(1)}%)`,
+      ok, partialScore: ps,
+      detail: `현재 $${baseQ.price?.toFixed(2)} / MA20 $${baseQ.ma20?.toFixed(2)} (${diff > 0 ? "+" : ""}${diff.toFixed(1)}%) · ${ps.toFixed(1)}/4점`,
       priority: "high",
     });
     total++; if (ok) score++;
@@ -312,12 +379,18 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
 
   // ETF 자체 5일 모멘텀
   if (tq?.ok && tq.fiveDayReturn != null) {
-    const ok = tq.fiveDayReturn > -5;
-    const tag = tq.fiveDayReturn > 3 ? " 강세" : tq.fiveDayReturn > 0 ? " 양호" : tq.fiveDayReturn > -5 ? " 약세" : " 급락";
+    const r = tq.fiveDayReturn;
+    let ps = 0;
+    if (r >= 2) ps = 2;
+    else if (r >= 0) ps = 1.5;
+    else if (r >= -3) ps = 1;
+    else if (r >= -5) ps = 0.5;
+    const ok = r > -5;
+    const tag = r > 3 ? " 강세" : r > 0 ? " 양호" : r > -5 ? " 약세" : " 급락";
     results.push({
       label: `${targetTicker} 5일 모멘텀`,
-      ok,
-      detail: `최근 5거래일 ${tq.fiveDayReturn > 0 ? "+" : ""}${tq.fiveDayReturn.toFixed(2)}%${tag}`,
+      ok, partialScore: ps,
+      detail: `최근 5거래일 ${r > 0 ? "+" : ""}${r.toFixed(2)}%${tag} · ${ps.toFixed(1)}/2점`,
       priority: "low",
     });
     total++; if (ok) score++;
@@ -330,21 +403,27 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   const daysToDiv = (divWeekday - todayDow + 7) % 7 || 7;
   const divTypeLabel = isW ? "Roundhill 월요일" : "YieldMax 목요일";
   const divOk = daysToDiv >= 1 && daysToDiv <= 3;
+  let divPs = 0;
+  if (daysToDiv === 1) divPs = 1;
+  else if (daysToDiv === 2) divPs = 0.7;
+  else if (daysToDiv === 3) divPs = 0.4;
   results.push({
     label: "배당락일 1~3일 전",
     ok: divOk,
-    detail: `다음 ${divTypeLabel} 배당락 D-${daysToDiv}`,
+    partialScore: divPs,
+    detail: `다음 ${divTypeLabel} 배당락 D-${daysToDiv} · ${divPs.toFixed(1)}/1점`,
     priority: "bonus",
   });
   total++; if (divOk) score++;
 
-  // 가중치 점수 (critical=5, high=4, mid=3, low=2, bonus=1)
+  // 가중치 점수 (critical=5, high=4, mid=3, low=2, bonus=1) - 부분점수 적용
   const WEIGHTS = { critical: 5, high: 4, mid: 3, low: 2, bonus: 1 };
   let wScore = 0, wMax = 0;
   results.forEach(r => {
     const w = WEIGHTS[r.priority] ?? 1;
     wMax += w;
-    if (r.ok) wScore += w;
+    // partialScore 있으면 그라데이션 점수, 없으면 기존 ok 방식
+    wScore += r.partialScore != null ? r.partialScore : (r.ok ? w : 0);
   });
   const pct = wMax > 0 ? Math.round((wScore / wMax) * 100) : 0;
 
@@ -803,7 +882,7 @@ export default function App() {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 5 }}>
-                    <span style={{ fontSize: 28, fontWeight: 800, color: evaluation.signalColor, lineHeight: 1 }}>{evaluation.score}</span>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: evaluation.signalColor, lineHeight: 1 }}>{evaluation.score.toFixed(1)}</span>
                     <span style={{ fontSize: 14, color: C.muted, fontWeight: 600 }}>/ {evaluation.total}점</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginTop: 3 }}>
