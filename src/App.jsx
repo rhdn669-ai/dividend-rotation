@@ -140,7 +140,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     label: "CPI/FOMC 이벤트 없음",
     ok: evOk,
     detail: todayEv ? `오늘 ${todayEv.label}` : tmrEv ? `내일 ${tmrEv.label}` : "이벤트 없음",
-    priority: "high",
+    priority: "critical",
   });
   total++; if (evOk) score++;
 
@@ -157,7 +157,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     label: ["NVDA","AMD","TSM"].includes(targetCo) ? `${targetCo}/TSMC 실적 발표 임박 없음` : `${targetCo} 실적 발표 임박 없음`,
     ok: earningsOk,
     detail: earningsEv ? `${earningsEv.date} ${earningsEv.label}` : "2일 이내 실적 발표 없음",
-    priority: "high",
+    priority: "critical",
   });
   total++; if (earningsOk) score++;
 
@@ -195,7 +195,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
       label: `${targetTicker} 변동 ±4% 이내`,
       ok,
       detail: `${tq.changePct > 0 ? "+" : ""}${tq.changePct?.toFixed(2)}%`,
-      priority: "mid",
+      priority: "low",
     });
     total++; if (ok) score++;
   }
@@ -223,11 +223,11 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
       label: "VIX 15~30 (프리미엄 적정)",
       ok,
       detail: `VIX ${vixVal.toFixed(2)}${!vixQ?.ok ? " (수동)" : ""}${tag}`,
-      priority: "high",
+      priority: "critical",
     });
     total++; if (ok) score++;
   } else {
-    results.push({ label: "VIX 15~30 (프리미엄 적정)", ok: false, detail: "수동 입력 필요", priority: "high" });
+    results.push({ label: "VIX 15~30 (프리미엄 적정)", ok: false, detail: "수동 입력 필요", priority: "critical" });
     total++;
   }
 
@@ -239,7 +239,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
       label: `${targetTicker} 거래량 정상 (평균 대비 0.5~2.5배)`,
       ok,
       detail: `오늘 ${fmtVol(tq.todayVol)} / 평균 ${fmtVol(tq.avgVol20)} (${tq.volRatio.toFixed(2)}배)${tag}`,
-      priority: "mid",
+      priority: "low",
     });
     total++; if (ok) score++;
   }
@@ -251,7 +251,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
       label: `${baseName} 거래량 급증 없음`,
       ok,
       detail: `${baseName} 평균 대비 ${baseQ.volRatio.toFixed(2)}배${baseQ.volRatio >= 2 ? " ⚠️급등락 가능성" : " 정상"}`,
-      priority: "mid",
+      priority: "low",
     });
     total++; if (ok) score++;
   }
@@ -292,7 +292,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
       label: `${baseName} MA20 위 (상승 추세)`,
       ok,
       detail: `현재 $${baseQ.price?.toFixed(2)} / MA20 $${baseQ.ma20?.toFixed(2)} (${diff > 0 ? "+" : ""}${diff.toFixed(1)}%)`,
-      priority: "mid",
+      priority: "high",
     });
     total++; if (ok) score++;
   }
@@ -305,7 +305,7 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
       label: `${targetTicker} 5일 모멘텀`,
       ok,
       detail: `최근 5거래일 ${tq.fiveDayReturn > 0 ? "+" : ""}${tq.fiveDayReturn.toFixed(2)}%${tag}`,
-      priority: "mid",
+      priority: "low",
     });
     total++; if (ok) score++;
   }
@@ -321,16 +321,24 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     label: "배당락일 1~3일 전",
     ok: divOk,
     detail: `다음 ${divTypeLabel} 배당락 D-${daysToDiv}`,
-    priority: "low",
+    priority: "bonus",
   });
   total++; if (divOk) score++;
 
-  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  // 가중치 점수 (critical=5, high=4, mid=3, low=2, bonus=1)
+  const WEIGHTS = { critical: 5, high: 4, mid: 3, low: 2, bonus: 1 };
+  let wScore = 0, wMax = 0;
+  results.forEach(r => {
+    const w = WEIGHTS[r.priority] ?? 1;
+    wMax += w;
+    if (r.ok) wScore += w;
+  });
+  const pct = wMax > 0 ? Math.round((wScore / wMax) * 100) : 0;
   let signal = "위험", signalColor = "#ef4444";
   if (pct >= 80) { signal = "진입 적합"; signalColor = "#22c55e"; }
   else if (pct >= 50) { signal = "주의 관찰"; signalColor = "#f59e0b"; }
 
-  return { results, score, total, pct, signal, signalColor };
+  return { results, score: wScore, total: wMax, pct, signal, signalColor };
 }
 
 // ─── 통계 계산 (회전이력 탭용) ─────────────────────────────────────────────
