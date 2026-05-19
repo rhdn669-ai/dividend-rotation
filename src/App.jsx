@@ -91,6 +91,19 @@ function fmtVol(v) {
   return String(v);
 }
 
+// ─── 미국 장 상태 ────────────────────────────────────────────────────────────
+function getMarketStatus(now) {
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const day = et.getDay();
+  const hm = et.getHours() * 60 + et.getMinutes();
+  const etStr = et.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  if (day === 0 || day === 6) return { label: "주말 마감", color: "#94a3b8", etStr };
+  if (hm >= 570 && hm < 960)  return { label: "정규장", color: "#22c55e", etStr };
+  if (hm >= 240 && hm < 570)  return { label: "프리마켓", color: "#f59e0b", etStr };
+  if (hm >= 960 && hm < 1200) return { label: "시간외", color: "#f97316", etStr };
+  return { label: "마감", color: "#94a3b8", etStr };
+}
+
 // ─── 진입 조건 평가기 ──────────────────────────────────────────────────────
 // 가중치는 추후 src/lib/evaluator.js로 분리 권장
 function evaluateConditions(quotes, targetTicker, events, manualVix) {
@@ -309,6 +322,7 @@ export default function App() {
   const [rotationLog, setRotationLog] = useState(() => storage.get(STORAGE_KEYS.log, []));
   const [manualVix, setManualVix] = useState(() => storage.get(STORAGE_KEYS.vix, ""));
   const [scoreHistory, setScoreHistory] = useState(() => storage.get(STORAGE_KEYS.scoreHistory, []));
+  const [marketTime, setMarketTime] = useState(() => new Date());
   const [tab, setTab] = useState("signal");
   const [showEventModal, setShowEventModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
@@ -323,6 +337,10 @@ export default function App() {
   useEffect(() => storage.set(STORAGE_KEYS.log, rotationLog), [rotationLog]);
   useEffect(() => storage.set(STORAGE_KEYS.vix, manualVix), [manualVix]);
   useEffect(() => storage.set(STORAGE_KEYS.ticker, activeTicker), [activeTicker]);
+  useEffect(() => {
+    const id = setInterval(() => setMarketTime(new Date()), 10000);
+    return () => clearInterval(id);
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -374,6 +392,7 @@ export default function App() {
     [events, todayStr]
   );
   const logStats = useMemo(() => calcLogStats(rotationLog), [rotationLog]);
+  const marketStatus = useMemo(() => getMarketStatus(marketTime), [marketTime]);
 
   const saveSnapshot = useCallback(() => {
     const snap = {
@@ -439,11 +458,15 @@ export default function App() {
             {loading ? "갱신중" : "새로고침"}
           </button>
         </div>
-        {lastUpdate && (
-          <div style={{ fontSize: 9, color: "#cbd5e1", marginTop: 6 }}>
-            마지막 갱신: {fmtTime(lastUpdate)} · 1분 자동갱신 · Yahoo Finance (딜레이 15~20분)
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+          <div style={{ fontSize: 9, color: "#cbd5e1" }}>
+            {lastUpdate ? `갱신: ${fmtTime(lastUpdate)} · Yahoo Finance` : "데이터 로딩 중..."}
           </div>
-        )}
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 9, color: "#94a3b8" }}>ET {marketStatus.etStr}</span>
+            <span style={{ background: `${marketStatus.color}25`, color: marketStatus.color, borderRadius: 5, padding: "1px 8px", fontSize: 9, fontWeight: 700 }}>{marketStatus.label}</span>
+          </div>
+        </div>
       </div>
 
       {/* 탭 */}
