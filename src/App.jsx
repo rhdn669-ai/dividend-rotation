@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.31";
+const APP_VERSION = "1.0.32";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -176,7 +176,7 @@ function getMarketStatus(now) {
 
 // ─── 진입 조건 평가기 ──────────────────────────────────────────────────────
 // 가중치는 추후 src/lib/evaluator.js로 분리 권장
-function evaluateConditions(quotes, targetTicker, events, manualVix) {
+function evaluateConditions(quotes, targetTicker, events, manualVix, learnedThreshold = null, scoreFitness = null) {
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const tomorrowStr = new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
@@ -441,11 +441,19 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   const criticalFails = failedCritical.length;
   const criticalVeto = criticalFails > 0;
 
+  // 학습된 임계값 적용 (5건+ 검증 시), 기본 80%
+  const passThreshold = learnedThreshold?.threshold ?? 80;
+  // 점수 시스템 적합도 체크 (역효과인 경우 진입 적합 차단)
+  const fitnessUnfit = scoreFitness != null && scoreFitness.corr != null && scoreFitness.corr < -0.1 && scoreFitness.count >= 5;
+
   let signal = "위험", signalColor = "#ef4444";
   if (criticalVeto) {
     signal = criticalFails >= 2 ? "위험 (Critical 다수 실패)" : "주의 관찰 (Critical 실패)";
     signalColor = criticalFails >= 2 ? "#ef4444" : "#f59e0b";
-  } else if (pct >= 80) { signal = "진입 적합"; signalColor = "#22c55e"; }
+  } else if (fitnessUnfit) {
+    signal = "관망 (점수 신뢰 불가)";
+    signalColor = "#f97316";
+  } else if (pct >= passThreshold) { signal = "진입 적합"; signalColor = "#22c55e"; }
   else if (pct >= 50) { signal = "주의 관찰"; signalColor = "#f59e0b"; }
 
   // 등급 (S/A+/A/B+/B/C/D/F)
@@ -587,7 +595,48 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   // 짧은 한줄 요약도 별도 유지
   const summaryShort = intro;
 
-  return { results, score: wScore, total: wMax, pct, signal, signalColor, failedCritical, criticalVeto, grade, summary, summaryShort, pros: pros.slice(0, 3), cons: cons.slice(0, 3) };
+  return { results, score: wScore, total: wMax, pct, signal, signalColor, failedCritical, criticalVeto, grade, summary, summaryShort, pros: pros.slice(0, 3), cons: cons.slice(0, 3), passThreshold, learnedThreshold, scoreFitness, fitnessUnfit };
+}
+
+
+// ─── 자가 학습 헬퍼: 종목별 최적 진입 임계값 ────────────────────────────────
+function getLearnedThreshold(targetTicker, predictionLog) {
+  if (!predictionLog?.snapshots) return null;
+  const items = predictionLog.snapshots.filter(s =>
+    s.tk === targetTicker && s.netReturnPct != null && s.entryPct != null
+  );
+  if (items.length < 5) return null;
+  const baseline = items.reduce((a, s) => a + s.netReturnPct, 0) / items.length;
+  let best = { th: null, alpha: -Infinity };
+  for (let th = 60; th <= 95; th += 5) {
+    const sub = items.filter(s => s.entryPct >= th);
+    if (sub.length < 3) continue;
+    const ar = sub.reduce((a, s) => a + s.netReturnPct, 0) / sub.length;
+    const alpha = ar - baseline;
+    if (alpha > best.alpha) best = { th, alpha };
+  }
+  return best.th != null ? { threshold: best.th, alpha: best.alpha, count: items.length } : null;
+}
+
+// 종목별 점수-수익 상관계수 (Pearson)
+function getScoreFitness(targetTicker, predictionLog) {
+  if (!predictionLog?.snapshots) return null;
+  const items = predictionLog.snapshots.filter(s =>
+    s.tk === targetTicker && s.netReturnPct != null && s.entryPct != null
+  );
+  if (items.length < 3) return null;
+  const xs = items.map(s => s.entryPct);
+  const ys = items.map(s => s.netReturnPct);
+  const xm = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const ym = ys.reduce((a, b) => a + b, 0) / ys.length;
+  let num = 0, dx = 0, dy = 0;
+  for (let i = 0; i < xs.length; i++) {
+    num += (xs[i] - xm) * (ys[i] - ym);
+    dx += (xs[i] - xm) ** 2;
+    dy += (ys[i] - ym) ** 2;
+  }
+  const corr = (dx > 0 && dy > 0) ? num / Math.sqrt(dx * dy) : null;
+  return { corr, count: items.length };
 }
 
 // ─── 통계 계산 (회전이력 탭용) ─────────────────────────────────────────────
@@ -898,28 +947,12 @@ export default function App() {
                     <span style={{ background: evaluation.signalColor, color: "#fff", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 800 }}>{evaluation.grade}</span>
                     <span style={{ fontSize: 10, color: C.muted }}>{evaluation.pct}%</span>
                   </div>
-                  {/* 자가 학습 권장 임계값 보조 표시 */}
-                  {(() => {
-                    if (!predictionLog?.snapshots) return null;
-                    const validated = predictionLog.snapshots.filter(s => s.tk === activeTicker && s.netReturnPct != null && s.entryPct != null);
-                    if (validated.length < 5) return null;
-                    const baseline = validated.reduce((a, s) => a + s.netReturnPct, 0) / validated.length;
-                    let best = { th: null, alpha: -Infinity };
-                    for (let th = 60; th <= 95; th += 5) {
-                      const sub = validated.filter(s => s.entryPct >= th);
-                      if (sub.length < 3) continue;
-                      const ar = sub.reduce((a, s) => a + s.netReturnPct, 0) / sub.length;
-                      const alpha = ar - baseline;
-                      if (alpha > best.alpha) best = { th, alpha };
-                    }
-                    if (best.th == null) return null;
-                    const meets = evaluation.pct >= best.th;
-                    return (
-                      <div style={{ marginTop: 6, padding: "3px 7px", background: meets ? "#dcfce7" : "#fef3c7", borderRadius: 5, fontSize: 9, fontWeight: 700, color: meets ? "#166534" : "#92400e", textAlign: "right" }}>
-                        💡 권장 {best.th}%+ {meets ? "✓ 충족" : `(${(best.th - evaluation.pct).toFixed(0)}% 부족)`}
-                      </div>
-                    );
-                  })()}
+                  {/* 학습 임계값 적용 상태 */}
+                  {evaluation.learnedThreshold && (
+                    <div style={{ marginTop: 6, padding: "3px 7px", background: "#ede9fe", borderRadius: 5, fontSize: 9, fontWeight: 700, color: "#5b21b6", textAlign: "right" }}>
+                      🧠 {activeTicker} 학습 임계값 {evaluation.passThreshold}% 적용 중 (α +{evaluation.learnedThreshold.alpha.toFixed(2)}%)
+                    </div>
+                  )}
                   {/* 현재 종목의 점수 시스템 적합도 */}
                   {(() => {
                     if (!predictionLog?.snapshots) return null;
