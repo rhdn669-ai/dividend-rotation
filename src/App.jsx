@@ -263,21 +263,20 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     total++; if (ok) score++;
   }
 
-  // 9. 배당락 D-day
-  const nextDiv = events
-    .filter((e) => e.type === "DIVIDEND" && e.date >= todayStr && (!targetTicker || e.label.includes(targetTicker) || !e.label.match(/NVDY|AMDW/)))
-    .sort((a, b) => a.date.localeCompare(b.date))[0];
-  if (nextDiv) {
-    const diff = Math.round((new Date(nextDiv.date) - today) / 86400000);
-    const ok = diff >= 1 && diff <= 3;
-    results.push({
-      label: "배당락일 1~3거래일 전",
-      ok,
-      detail: diff === 0 ? `오늘 배당락일 (${nextDiv.label})` : `D-${diff} (${nextDiv.label})`,
-      priority: "low",
-    });
-    total++; if (ok) score++;
-  }
+  // 9. 배당락 D-day (YieldMax=매주 목요일, Roundhill=매주 월요일 자동 계산)
+  const isW = ["AMDW", "PLTW"].includes(targetTicker);
+  const divWeekday = isW ? 1 : 4; // JS: 1=월, 4=목
+  const todayDow = today.getDay();
+  const daysToDiv = (divWeekday - todayDow + 7) % 7 || 7;
+  const divTypeLabel = isW ? "Roundhill 월요일" : "YieldMax 목요일";
+  const divOk = daysToDiv >= 1 && daysToDiv <= 3;
+  results.push({
+    label: "배당락일 1~3일 전",
+    ok: divOk,
+    detail: `다음 ${divTypeLabel} 배당락 D-${daysToDiv}`,
+    priority: "low",
+  });
+  total++; if (divOk) score++;
 
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
   let signal = "위험", signalColor = "#ef4444";
@@ -333,13 +332,12 @@ export default function App() {
     setQuotes(map);
     setLastUpdate(new Date());
     setLoading(false);
-    // 배당락일 1~3일 전이면 하루 1회 자동저장
+    // 배당락일 1~3일 전이면 하루 1회 자동저장 (Y=목요일, W=월요일)
     const todayStr = new Date().toISOString().slice(0, 10);
-    const hasUpcomingDiv = events.some(e => {
-      if (e.type !== "DIVIDEND") return false;
-      const diff = Math.round((new Date(e.date) - new Date()) / 86400000);
-      return diff >= 1 && diff <= 3;
-    });
+    const _dow = new Date().getDay();
+    const daysToThu = (4 - _dow + 7) % 7 || 7;
+    const daysToMon = (1 - _dow + 7) % 7 || 7;
+    const hasUpcomingDiv = (daysToThu >= 1 && daysToThu <= 3) || (daysToMon >= 1 && daysToMon <= 3);
     if (hasUpcomingDiv) {
       setScoreHistory(prev => {
         if (prev.find(s => s.auto && s.ts?.slice(0, 10) === todayStr)) return prev;
