@@ -333,7 +333,31 @@ export default function App() {
     setQuotes(map);
     setLastUpdate(new Date());
     setLoading(false);
-  }, []);
+    // 배당락일 1~3일 전이면 하루 1회 자동저장
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const hasUpcomingDiv = events.some(e => {
+      if (e.type !== "DIVIDEND") return false;
+      const diff = Math.round((new Date(e.date) - new Date()) / 86400000);
+      return diff >= 1 && diff <= 3;
+    });
+    if (hasUpcomingDiv) {
+      setScoreHistory(prev => {
+        if (prev.find(s => s.auto && s.ts?.slice(0, 10) === todayStr)) return prev;
+        const snap = {
+          ts: new Date().toISOString(),
+          auto: true,
+          scores: Object.fromEntries(
+            ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(tk => [
+              tk, evaluateConditions(map, tk, events, manualVix).pct
+            ])
+          ),
+        };
+        const updated = [snap, ...prev].slice(0, 200);
+        storage.set(STORAGE_KEYS.scoreHistory, updated);
+        return updated;
+      });
+    }
+  }, [events, manualVix]);
 
   useEffect(() => {
     refresh();
@@ -829,7 +853,10 @@ export default function App() {
                   return (
                     <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 13px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <div style={{ fontSize: 10, color: C.muted }}>{timeStr}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <span style={{ fontSize: 10, color: C.muted }}>{timeStr}</span>
+                          {snap.auto && <span style={{ background: "#dbeafe", color: "#1d4ed8", borderRadius: 4, padding: "1px 5px", fontSize: 8, fontWeight: 700 }}>자동</span>}
+                        </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: topColor }}>🥇 {top[0]} {top[1]}%</div>
                           <button onClick={() => setScoreHistory(prev => {
