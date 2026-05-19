@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.21";
+const APP_VERSION = "1.0.22";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -526,6 +526,7 @@ export default function App() {
   const [manualVix, setManualVix] = useState(() => storage.get(STORAGE_KEYS.vix, ""));
   const [scoreHistory, setScoreHistory] = useState(() => storage.get(STORAGE_KEYS.scoreHistory, []));
   const [predictionLog, setPredictionLog] = useState(null);
+  const [predictFilter, setPredictFilter] = useState("ALL");
   useEffect(() => {
     fetch(`/predictions.json?t=${Date.now()}`)
       .then(r => r.ok ? r.json() : null)
@@ -1295,7 +1296,23 @@ export default function App() {
 
             {tab === "predictlog" && (() => {
         if (!predictionLog) return <div style={{ textAlign: "center", padding: 40, color: C.muted }}>불러오는 중...</div>;
-        const snaps = [...(predictionLog.snapshots || [])].sort((a, b) => b.exDivDate.localeCompare(a.exDivDate));
+        const allSnaps = [...(predictionLog.snapshots || [])].sort((a, b) => b.exDivDate.localeCompare(a.exDivDate));
+
+        // 종목별 요약 계산 (전체 뷰에서만 사용)
+        const tickerSummary = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(t => {
+          const items = allSnaps.filter(s => s.tk === t);
+          const m = items.filter(s => s.actual != null);
+          const ae = m.map(s => Math.abs(s.errorPct ?? 0));
+          const avgErr = ae.length ? ae.reduce((a, b) => a + b, 0) / ae.length : null;
+          const validated = m.filter(s => s.netReturnPct != null);
+          const wins = validated.filter(s => s.profitable).length;
+          const winRate = validated.length ? (wins / validated.length) * 100 : null;
+          const avgNet = validated.length ? validated.reduce((a, s) => a + s.netReturnPct, 0) / validated.length : null;
+          return { tk: t, total: items.length, matched: m.length, avgErr, winRate, avgNet, validated: validated.length };
+        });
+
+        // 필터 적용
+        const snaps = predictFilter === "ALL" ? allSnaps : allSnaps.filter(s => s.tk === predictFilter);
         const matched = snaps.filter(s => s.actual != null);
         const pending = snaps.filter(s => s.actual == null);
         const errors = matched.map(s => s.errorPct).filter(e => e != null);
@@ -1304,7 +1321,6 @@ export default function App() {
         const avgAbsError = absErrors.length ? absErrors.reduce((a, b) => a + b, 0) / absErrors.length : null;
         const hitRate = matched.length ? (absErrors.filter(e => e <= 20).length / matched.length) * 100 : null;
         const usdkrw = quotes["KRW=X"]?.price;
-        // 진입점수 vs 실제수익 검증 데이터
         const validated = matched.filter(s => s.netReturnPct != null && s.entryPct != null);
         const buckets = [
           { range: "90~100%", min: 90, max: 101, label: "S/A+/A" },
@@ -1320,7 +1336,46 @@ export default function App() {
         });
         return (
           <div style={{ padding: "0 2px" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>🎯 예측 정확도 이력</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>🎯 예측 정확도 이력</div>
+              <div style={{ fontSize: 10, color: C.muted }}>{predictFilter === "ALL" ? `전체 ${allSnaps.length}건` : `${predictFilter} ${snaps.length}건`}</div>
+            </div>
+
+            {/* 종목 필터 */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>
+              {["ALL", "NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(t => (
+                <button key={t} onClick={() => setPredictFilter(t)}
+                  style={{ flex: 1, minWidth: 50, padding: "7px 4px", background: predictFilter === t ? C.blue : C.card, color: predictFilter === t ? "#fff" : C.muted, border: `1px solid ${predictFilter === t ? C.blue : C.border}`, borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {t === "ALL" ? "전체" : t}
+                </button>
+              ))}
+            </div>
+
+            {/* 종목별 요약 표 (전체일 때만) */}
+            {predictFilter === "ALL" && allSnaps.length > 0 && (
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: 0.3 }}>📋 종목별 요약</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {tickerSummary.map(s => (
+                    <div key={s.tk} onClick={() => setPredictFilter(s.tk)}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 9px", background: C.bg, borderRadius: 7, cursor: "pointer" }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: C.text, minWidth: 50 }}>{s.tk}</span>
+                      <span style={{ fontSize: 10, color: C.muted, minWidth: 50 }}>{s.total}건</span>
+                      <span style={{ fontSize: 10, color: s.avgErr == null ? C.muted : s.avgErr <= 15 ? C.green : s.avgErr <= 30 ? C.amber : C.red, minWidth: 60, textAlign: "right" }}>
+                        오차 {s.avgErr != null ? `±${s.avgErr.toFixed(1)}%` : "-"}
+                      </span>
+                      <span style={{ fontSize: 10, color: s.avgNet == null ? C.muted : s.avgNet > 0 ? C.green : C.red, minWidth: 60, textAlign: "right" }}>
+                        평균 {s.avgNet != null ? `${s.avgNet > 0 ? "+" : ""}${s.avgNet.toFixed(2)}%` : "-"}
+                      </span>
+                      <span style={{ fontSize: 10, color: s.winRate == null ? C.muted : s.winRate >= 70 ? C.green : s.winRate >= 50 ? C.amber : C.red, minWidth: 50, textAlign: "right" }}>
+                        승률 {s.winRate != null ? `${s.winRate.toFixed(0)}%` : "-"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 9, color: C.muted, marginTop: 6, textAlign: "center" }}>종목 행 클릭 시 해당 종목 상세 보기</div>
+              </div>
+            )}
 
             {/* 진입 검증 분석 */}
             {validated.length > 0 && (
@@ -1372,7 +1427,7 @@ export default function App() {
             </div>
             {snaps.length === 0 && (
               <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 12 }}>
-                아직 수집된 스냅샷이 없습니다.<br/><br/>
+                {predictFilter === "ALL" ? "아직 수집된 스냅샷이 없습니다." : `${predictFilter} 종목 데이터가 없습니다.`}<br/><br/>
                 매주 수요일/금요일 KST 04:30에 자동 캡처됩니다.<br/>(수: NVDY/AMDY/TSMY · 금: AMDW/PLTW)
               </div>
             )}
