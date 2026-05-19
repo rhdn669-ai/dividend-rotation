@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.26";
+const APP_VERSION = "1.0.27";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -1499,34 +1499,112 @@ export default function App() {
             )}
 
             {/* === 진입검증 탭 === */}
-            {!isAccuracy && (
-              <>
-                {/* 누적 성과 6개 카드 */}
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 13px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: 0.3 }}>💰 누적 성과 지표</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                    <StatCard label="누적 수익률" value={cumReturn != null ? fmtPct(cumReturn, 2) : "-"}
-                      sub={`${validated.length}회 진입 합산`}
-                      color={colorByReturn(cumReturn)} />
-                    <StatCard label="평균 순수익" value={avgReturn != null ? fmtPct(avgReturn, 2) : "-"}
-                      sub="회당 평균"
-                      color={colorByReturn(avgReturn)} />
-                    <StatCard label="승률" value={winRate != null ? `${winRate.toFixed(0)}%` : "-"}
-                      sub={`${wins.length}승 ${losses.length}패`}
-                      color={winRate == null ? C.muted : winRate >= 70 ? C.green : winRate >= 50 ? C.amber : C.red} />
-                    <StatCard label="손익비 (R/R)" value={rrRatio != null ? `${rrRatio.toFixed(2)}x` : "-"}
-                      sub={avgWin && avgLoss ? `+${avgWin.toFixed(1)}% / ${avgLoss.toFixed(1)}%` : ""}
-                      color={rrRatio == null ? C.muted : rrRatio >= 1.5 ? C.green : rrRatio >= 1 ? C.amber : C.red} />
-                    <StatCard label="최대 수익" value={maxWin != null ? fmtPct(maxWin, 2) : "-"}
-                      sub="단일 회 최고"
-                      color={C.green} />
-                    <StatCard label="최대 손실" value={maxLoss != null ? fmtPct(maxLoss, 2) : "-"}
-                      sub="단일 회 최악"
-                      color={C.red} />
-                  </div>
-                </div>
+            {!isAccuracy && (() => {
+              // 점수-수익 상관계수 (Pearson)
+              const corr = (() => {
+                if (validated.length < 2) return null;
+                const xs = validated.map(s => s.entryPct);
+                const ys = validated.map(s => s.netReturnPct);
+                const xm = xs.reduce((a, b) => a + b, 0) / xs.length;
+                const ym = ys.reduce((a, b) => a + b, 0) / ys.length;
+                let num = 0, dx = 0, dy = 0;
+                for (let i = 0; i < xs.length; i++) {
+                  num += (xs[i] - xm) * (ys[i] - ym);
+                  dx += (xs[i] - xm) ** 2;
+                  dy += (ys[i] - ym) ** 2;
+                }
+                return (dx > 0 && dy > 0) ? num / Math.sqrt(dx * dy) : null;
+              })();
+              const corrLabel = corr == null ? "-" : corr.toFixed(2);
+              const corrJudge = corr == null ? "검증 부족" : corr >= 0.5 ? "강한 상관 (시스템 유효)" : corr >= 0.3 ? "중간 상관" : corr >= 0.1 ? "약한 상관" : corr >= -0.1 ? "무상관 (점수↔수익 무관)" : "역상관 (시스템 결함)";
+              const corrColor = corr == null ? C.muted : corr >= 0.5 ? C.green : corr >= 0.3 ? "#84cc16" : corr >= 0.1 ? C.amber : corr >= -0.1 ? "#f97316" : C.red;
 
-                {/* 점수 구간별 분석 */}
+              // 임계값 시뮬레이션
+              const thresholds = [70, 80, 85, 90, 95];
+              const sims = thresholds.map(th => {
+                const items = validated.filter(s => s.entryPct >= th);
+                const cnt = items.length;
+                const ar = cnt ? items.reduce((a, s) => a + s.netReturnPct, 0) / cnt : null;
+                const wr = cnt ? (items.filter(s => s.profitable).length / cnt) * 100 : null;
+                return { th, cnt, ar, wr };
+              });
+              // 베이스라인 (무조건 진입)
+              const baselineCount = validated.length;
+              const baselineAvg = avgReturn;
+
+              return (
+                <>
+                  {/* 🎯 핵심 검증: 점수↔수익 상관관계 */}
+                  <div style={{ background: C.card, border: `2px solid ${corrColor}40`, borderRadius: 12, padding: "14px 15px", marginBottom: 12, boxShadow: `0 2px 8px ${corrColor}10` }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: 0.3 }}>🎯 점수 시스템 유효성</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted }}>점수↔수익 상관계수 (Pearson)</div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: corrColor, lineHeight: 1, marginTop: 3 }}>{corrLabel}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: corrColor }}>{corrJudge}</div>
+                        <div style={{ fontSize: 9, color: C.muted, marginTop: 3 }}>{validated.length}건 검증</div>
+                      </div>
+                    </div>
+                    {/* 상관계수 시각화 바 (-1 ~ +1) */}
+                    <div style={{ position: "relative", height: 14, background: "linear-gradient(to right, #fee2e2, #fef3c7, #dcfce7)", borderRadius: 7 }}>
+                      {corr != null && (
+                        <div style={{ position: "absolute", top: -3, left: `${((corr + 1) / 2) * 100}%`, width: 4, height: 20, background: corrColor, borderRadius: 2, transform: "translateX(-2px)" }} />
+                      )}
+                      <div style={{ position: "absolute", top: "50%", left: "50%", width: 1, height: "100%", background: "#94a3b860", transform: "translate(-50%, -50%)" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3, fontSize: 8, color: C.muted }}>
+                      <span>-1 (역상관)</span>
+                      <span>0 (무관)</span>
+                      <span>+1 (강상관)</span>
+                    </div>
+                  </div>
+
+                  {/* 📊 기본 성과 (3개로 축소) */}
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 13px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: 0.3 }}>📊 진입 성과 요약</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 }}>
+                      <StatCard label="평균 수익" value={avgReturn != null ? fmtPct(avgReturn, 2) : "-"} sub={`회당`} color={colorByReturn(avgReturn)} />
+                      <StatCard label="승률" value={winRate != null ? `${winRate.toFixed(0)}%` : "-"} sub={`${wins.length}승 ${losses.length}패`} color={winRate == null ? C.muted : winRate >= 70 ? C.green : winRate >= 50 ? C.amber : C.red} />
+                      <StatCard label="손익비" value={rrRatio != null ? `${rrRatio.toFixed(2)}x` : "-"} sub={avgWin && avgLoss ? `${avgWin.toFixed(1)}/${avgLoss.toFixed(1)}` : ""} color={rrRatio == null ? C.muted : rrRatio >= 1.5 ? C.green : rrRatio >= 1 ? C.amber : C.red} />
+                    </div>
+                  </div>
+
+                  {/* 🔬 임계값 시뮬레이션 */}
+                  {validated.length > 0 && (
+                    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 13px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: 0.3 }}>🔬 임계값 전략 비교 — "X% 이상만 진입한다면?"</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 9px", background: "#f3f4f6", borderRadius: 7 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.text, minWidth: 80 }}>전체 (베이스라인)</span>
+                          <span style={{ fontSize: 10, color: C.muted, minWidth: 36 }}>{baselineCount}건</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: colorByReturn(baselineAvg), flex: 1, textAlign: "right" }}>{baselineAvg != null ? fmtPct(baselineAvg, 2) : "-"}</span>
+                          <span style={{ fontSize: 9, color: C.muted, minWidth: 50, textAlign: "right" }}>승률 {winRate != null ? winRate.toFixed(0) + "%" : "-"}</span>
+                        </div>
+                        {sims.map(s => {
+                          const alpha = s.ar != null && baselineAvg != null ? s.ar - baselineAvg : null;
+                          return (
+                            <div key={s.th} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 9px", background: C.bg, borderRadius: 7, border: alpha != null && alpha > 0.5 ? "1px solid #bbf7d0" : "1px solid transparent" }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: C.text, minWidth: 80 }}>{s.th}% 이상</span>
+                              <span style={{ fontSize: 10, color: C.muted, minWidth: 36 }}>{s.cnt}건</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: colorByReturn(s.ar), flex: 1, textAlign: "right" }}>{s.ar != null ? fmtPct(s.ar, 2) : "-"}</span>
+                              <span style={{ fontSize: 9, color: s.wr == null ? C.muted : s.wr >= 70 ? C.green : s.wr >= 50 ? C.amber : C.red, minWidth: 50, textAlign: "right" }}>승률 {s.wr != null ? s.wr.toFixed(0) + "%" : "-"}</span>
+                              {alpha != null && (
+                                <span style={{ fontSize: 9, fontWeight: 700, color: alpha > 0 ? C.green : alpha < 0 ? C.red : C.muted, minWidth: 50, textAlign: "right" }}>α {alpha > 0 ? "+" : ""}{alpha.toFixed(2)}%</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+                        · α (알파) = 임계값 전략 평균수익 - 베이스라인. 양수면 점수 시스템이 알파 생성<br/>
+                        · 초록 테두리 = α &gt;0.5%로 의미있는 개선
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 📈 구간별 분석 (기존, 위치만 이동) */}
                 {validated.length > 0 && (() => {
                   const buckets = [
                     { range: "90~100%", min: 90, max: 101, label: "S/A+/A", color: "#22c55e" },
@@ -1572,23 +1650,24 @@ export default function App() {
                   );
                 })()}
 
-                {/* 베스트 / 워스트 진입 */}
-                {bestEntry && worstEntry && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
-                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#166534", marginBottom: 4 }}>🥇 베스트 진입</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#15803d" }}>{bestEntry.tk} · {fmtPct(bestEntry.netReturnPct, 2)}</div>
-                      <div style={{ fontSize: 9, color: "#166534", marginTop: 2 }}>{bestEntry.exDivDate} · 점수 {bestEntry.entryPct}% ({bestEntry.entryGrade})</div>
+                  {/* 베스트 / 워스트 진입 */}
+                  {bestEntry && worstEntry && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+                      <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "#166534", marginBottom: 4 }}>🥇 베스트 진입</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#15803d" }}>{bestEntry.tk} · {fmtPct(bestEntry.netReturnPct, 2)}</div>
+                        <div style={{ fontSize: 9, color: "#166534", marginTop: 2 }}>{bestEntry.exDivDate} · 점수 {bestEntry.entryPct}% ({bestEntry.entryGrade})</div>
+                      </div>
+                      <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "#991b1b", marginBottom: 4 }}>❌ 워스트 진입</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#b91c1c" }}>{worstEntry.tk} · {fmtPct(worstEntry.netReturnPct, 2)}</div>
+                        <div style={{ fontSize: 9, color: "#991b1b", marginTop: 2 }}>{worstEntry.exDivDate} · 점수 {worstEntry.entryPct}% ({worstEntry.entryGrade})</div>
+                      </div>
                     </div>
-                    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#991b1b", marginBottom: 4 }}>❌ 워스트 진입</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#b91c1c" }}>{worstEntry.tk} · {fmtPct(worstEntry.netReturnPct, 2)}</div>
-                      <div style={{ fontSize: 9, color: "#991b1b", marginTop: 2 }}>{worstEntry.exDivDate} · 점수 {worstEntry.entryPct}% ({worstEntry.entryGrade})</div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+                  )}
+                </>
+              );
+            })()}
 
             {/* 종목별 요약 (전체일 때) */}
             {predictFilter === "ALL" && allSnaps.length > 0 && (
