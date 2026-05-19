@@ -28,6 +28,7 @@ const STORAGE_KEYS = {
   log: "dividend-rotation:log",
   vix: "dividend-rotation:vix",
   ticker: "dividend-rotation:active-ticker",
+  scoreHistory: "dividend-rotation:score-history",
 };
 
 // ─── localStorage Helper (CF Pages 배포 후 정상 작동) ──────────────────────
@@ -308,6 +309,7 @@ export default function App() {
   const [events, setEvents] = useState(() => storage.get(STORAGE_KEYS.events, DEFAULT_EVENTS));
   const [rotationLog, setRotationLog] = useState(() => storage.get(STORAGE_KEYS.log, []));
   const [manualVix, setManualVix] = useState(() => storage.get(STORAGE_KEYS.vix, ""));
+  const [scoreHistory, setScoreHistory] = useState(() => storage.get(STORAGE_KEYS.scoreHistory, []));
   const [tab, setTab] = useState("signal");
   const [showEventModal, setShowEventModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
@@ -331,7 +333,20 @@ export default function App() {
     setQuotes(map);
     setLastUpdate(new Date());
     setLoading(false);
-  }, []);
+    const snap = {
+      ts: new Date().toISOString(),
+      scores: Object.fromEntries(
+        ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(tk => [
+          tk, evaluateConditions(map, tk, events, manualVix).pct
+        ])
+      ),
+    };
+    setScoreHistory(prev => {
+      const updated = [snap, ...prev].slice(0, 200);
+      storage.set(STORAGE_KEYS.scoreHistory, updated);
+      return updated;
+    });
+  }, [events, manualVix]);
 
   useEffect(() => {
     refresh();
@@ -368,6 +383,7 @@ export default function App() {
     { id: "log", label: "🔄 회전이력" },
     { id: "guide", label: "📖 가이드" },
     { id: "glossary", label: "📚 용어" },
+    { id: "history", label: "📈 기록" },
   ];
 
   const C = {
@@ -757,6 +773,75 @@ export default function App() {
                 <div style={{ fontSize: 11, color: C.sub, lineHeight: 1.8 }}>{item.desc}</div>
               </div>
             ))}
+          </div>
+        )}
+        {/* ── 기록 탭 ── */}
+        {tab === "history" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 13 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.sub }}>점수 · 순위 기록</div>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>새로고침 시 자동 저장 · 최대 200건</div>
+              </div>
+              {scoreHistory.length > 0 && (
+                <button onClick={() => { setScoreHistory([]); storage.set(STORAGE_KEYS.scoreHistory, []); }}
+                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, color: C.muted, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>초기화</button>
+              )}
+            </div>
+
+            {scoreHistory.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 7 }}>1위 횟수 (전체 {scoreHistory.length}건)</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(tk => {
+                    const count = scoreHistory.filter(s => Object.entries(s.scores).sort((a, b) => b[1] - a[1])[0]?.[0] === tk).length;
+                    return (
+                      <div key={tk} style={{ flex: 1, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 4px", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: C.blue }}>{tk}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginTop: 2 }}>{count}</div>
+                        <div style={{ fontSize: 9, color: C.muted }}>회</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {scoreHistory.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#cbd5e1", padding: "40px 0", fontSize: 13 }}>
+                기록 없음<br /><span style={{ fontSize: 11 }}>새로고침 시 자동 저장됩니다</span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {scoreHistory.slice(0, 50).map((snap, i) => {
+                  const ranked = Object.entries(snap.scores).sort((a, b) => b[1] - a[1]);
+                  const top = ranked[0];
+                  const topColor = top[1] >= 80 ? C.green : top[1] >= 50 ? C.amber : C.red;
+                  const d = new Date(snap.ts);
+                  const timeStr = `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`;
+                  return (
+                    <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 13px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <div style={{ fontSize: 10, color: C.muted }}>{timeStr}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: topColor }}>🥇 {top[0]} {top[1]}%</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {ranked.map(([tk, pct], j) => {
+                          const c = pct >= 80 ? C.green : pct >= 50 ? C.amber : C.red;
+                          return (
+                            <div key={tk} style={{ flex: 1, textAlign: "center", padding: "5px 2px", background: j === 0 ? `${topColor}12` : "#f8fafc", borderRadius: 7 }}>
+                              <div style={{ fontSize: 8, color: C.muted }}>{j + 1}위</div>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: c }}>{tk}</div>
+                              <div style={{ fontSize: 9, color: c }}>{pct}%</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
