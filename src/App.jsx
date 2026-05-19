@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.28";
+const APP_VERSION = "1.0.29";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -898,6 +898,28 @@ export default function App() {
                     <span style={{ background: evaluation.signalColor, color: "#fff", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 800 }}>{evaluation.grade}</span>
                     <span style={{ fontSize: 10, color: C.muted }}>{evaluation.pct}%</span>
                   </div>
+                  {/* 자가 학습 권장 임계값 보조 표시 */}
+                  {(() => {
+                    if (!predictionLog?.snapshots) return null;
+                    const validated = predictionLog.snapshots.filter(s => s.tk === activeTicker && s.netReturnPct != null && s.entryPct != null);
+                    if (validated.length < 5) return null;
+                    const baseline = validated.reduce((a, s) => a + s.netReturnPct, 0) / validated.length;
+                    let best = { th: null, alpha: -Infinity };
+                    for (let th = 60; th <= 95; th += 5) {
+                      const sub = validated.filter(s => s.entryPct >= th);
+                      if (sub.length < 3) continue;
+                      const ar = sub.reduce((a, s) => a + s.netReturnPct, 0) / sub.length;
+                      const alpha = ar - baseline;
+                      if (alpha > best.alpha) best = { th, alpha };
+                    }
+                    if (best.th == null) return null;
+                    const meets = evaluation.pct >= best.th;
+                    return (
+                      <div style={{ marginTop: 6, padding: "3px 7px", background: meets ? "#dcfce7" : "#fef3c7", borderRadius: 5, fontSize: 9, fontWeight: 700, color: meets ? "#166534" : "#92400e", textAlign: "right" }}>
+                        💡 권장 {best.th}%+ {meets ? "✓ 충족" : `(${(best.th - evaluation.pct).toFixed(0)}% 부족)`}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1654,6 +1676,86 @@ export default function App() {
                       </div>
                     </div>
                   )}
+
+                  {/* 🤖 자가 학습: 최적 임계값 추천 */}
+                  {validated.length >= 5 && (() => {
+                    // 전체 베이스라인
+                    const findOptimal = (items, baseline) => {
+                      if (items.length < 5) return null;
+                      let best = { th: null, alpha: -Infinity, cnt: 0, ar: null, wr: null };
+                      for (let th = 60; th <= 95; th += 5) {
+                        const subset = items.filter(s => s.entryPct >= th);
+                        if (subset.length < 3) continue;
+                        const ar = subset.reduce((a, s) => a + s.netReturnPct, 0) / subset.length;
+                        const alpha = ar - baseline;
+                        if (alpha > best.alpha) {
+                          const wins = subset.filter(s => s.profitable).length;
+                          best = { th, alpha, cnt: subset.length, ar, wr: (wins / subset.length) * 100 };
+                        }
+                      }
+                      return best.th != null ? best : null;
+                    };
+
+                    const overallOptimal = findOptimal(validated, baselineAvg);
+                    const tickerOptimal = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(t => {
+                      const items = validated.filter(s => s.tk === t);
+                      const baseline = items.length ? items.reduce((a, s) => a + s.netReturnPct, 0) / items.length : 0;
+                      return { tk: t, count: items.length, optimal: findOptimal(items, baseline) };
+                    });
+
+                    return (
+                      <div style={{ background: "linear-gradient(135deg, #fef3c7 0%, #ddd6fe 100%)", border: "2px solid #a78bfa", borderRadius: 12, padding: "14px 15px", marginBottom: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                          <span style={{ fontSize: 14 }}>🤖</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#5b21b6", letterSpacing: 0.3 }}>시스템 자가 학습 (Auto-calibration)</span>
+                        </div>
+
+                        {/* 전체 권장 임계값 */}
+                        {overallOptimal && (
+                          <div style={{ background: "#fff", borderRadius: 10, padding: "11px 13px", marginBottom: 8 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <div style={{ fontSize: 10, color: "#6b21a8", fontWeight: 600 }}>전체 권장 진입선</div>
+                                <div style={{ fontSize: 24, fontWeight: 800, color: "#7c3aed", lineHeight: 1, marginTop: 3 }}>{overallOptimal.th}%+</div>
+                              </div>
+                              <div style={{ textAlign: "right" }}>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: overallOptimal.alpha > 0 ? "#15803d" : "#b91c1c" }}>α {overallOptimal.alpha > 0 ? "+" : ""}{overallOptimal.alpha.toFixed(2)}%</div>
+                                <div style={{ fontSize: 9, color: "#6b21a8" }}>{overallOptimal.cnt}건 · 승률 {overallOptimal.wr.toFixed(0)}%</div>
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 9, color: "#6b21a8", marginTop: 6, lineHeight: 1.5 }}>
+                              이 임계값 이상에서만 진입했다면 베이스라인 대비 평균 {overallOptimal.alpha > 0 ? "+" : ""}{overallOptimal.alpha.toFixed(2)}% 초과수익
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 종목별 최적 */}
+                        <div style={{ background: "#fff", borderRadius: 10, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#6b21a8", marginBottom: 6 }}>📊 종목별 최적 임계값</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            {tickerOptimal.map(({ tk, count, optimal }) => (
+                              <div key={tk} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", background: "#faf5ff", borderRadius: 6 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: "#5b21b6", minWidth: 50 }}>{tk}</span>
+                                <span style={{ fontSize: 9, color: "#7c3aed", minWidth: 36 }}>{count}건</span>
+                                {optimal ? (
+                                  <>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", flex: 1, textAlign: "right" }}>{optimal.th}%+</span>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: optimal.alpha > 0 ? "#15803d" : "#b91c1c", minWidth: 60, textAlign: "right" }}>α {optimal.alpha > 0 ? "+" : ""}{optimal.alpha.toFixed(2)}%</span>
+                                  </>
+                                ) : (
+                                  <span style={{ fontSize: 10, color: "#a78bfa", flex: 1, textAlign: "right", fontStyle: "italic" }}>검증 부족 (5건+ 필요)</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: 9, color: "#6b21a8", marginTop: 8, lineHeight: 1.5 }}>
+                          ✨ 검증 데이터가 쌓일수록 권장 임계값이 정교해집니다 (자율 학습)
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* 📈 구간별 분석 (기존, 위치만 이동) */}
                 {validated.length > 0 && (() => {
