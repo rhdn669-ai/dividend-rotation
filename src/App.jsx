@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.29";
+const APP_VERSION = "1.0.30";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -920,6 +920,36 @@ export default function App() {
                       </div>
                     );
                   })()}
+                  {/* 현재 종목의 점수 시스템 적합도 */}
+                  {(() => {
+                    if (!predictionLog?.snapshots) return null;
+                    const items = predictionLog.snapshots.filter(s => s.tk === activeTicker && s.netReturnPct != null && s.entryPct != null);
+                    if (items.length < 3) return null;
+                    const xs = items.map(s => s.entryPct);
+                    const ys = items.map(s => s.netReturnPct);
+                    const xm = xs.reduce((a, b) => a + b, 0) / xs.length;
+                    const ym = ys.reduce((a, b) => a + b, 0) / ys.length;
+                    let num = 0, dx = 0, dy = 0;
+                    for (let i = 0; i < xs.length; i++) {
+                      num += (xs[i] - xm) * (ys[i] - ym);
+                      dx += (xs[i] - xm) ** 2;
+                      dy += (ys[i] - ym) ** 2;
+                    }
+                    const corr = (dx > 0 && dy > 0) ? num / Math.sqrt(dx * dy) : null;
+                    if (corr == null) return null;
+                    let status, color, emoji;
+                    if (items.length < 5) { status = "검증 부족"; color = "#a78bfa"; emoji = "🔸"; }
+                    else if (corr >= 0.5) { status = "점수 유효성 ⭐"; color = "#15803d"; emoji = "⭐"; }
+                    else if (corr >= 0.3) { status = "점수 양호"; color = "#65a30d"; emoji = "✅"; }
+                    else if (corr >= 0.1) { status = "점수 약함"; color = "#d97706"; emoji = "🔹"; }
+                    else if (corr >= -0.1) { status = "점수 무관"; color = "#ea580c"; emoji = "⚪"; }
+                    else { status = "점수 부적합"; color = "#b91c1c"; emoji = "❌"; }
+                    return (
+                      <div style={{ marginTop: 4, padding: "3px 7px", background: `${color}15`, borderRadius: 5, fontSize: 9, fontWeight: 700, color, textAlign: "right" }}>
+                        {emoji} {activeTicker} {status} (r={corr.toFixed(2)}, {items.length}건)
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1752,6 +1782,69 @@ export default function App() {
 
                         <div style={{ fontSize: 9, color: "#6b21a8", marginTop: 8, lineHeight: 1.5 }}>
                           ✨ 검증 데이터가 쌓일수록 권장 임계값이 정교해집니다 (자율 학습)
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 🧠 종목별 점수 시스템 적합도 (per-ticker learning) */}
+                  {validated.length >= 3 && (() => {
+                    const pearson = (xs, ys) => {
+                      if (xs.length < 2) return null;
+                      const xm = xs.reduce((a, b) => a + b, 0) / xs.length;
+                      const ym = ys.reduce((a, b) => a + b, 0) / ys.length;
+                      let num = 0, dx = 0, dy = 0;
+                      for (let i = 0; i < xs.length; i++) {
+                        num += (xs[i] - xm) * (ys[i] - ym);
+                        dx += (xs[i] - xm) ** 2;
+                        dy += (ys[i] - ym) ** 2;
+                      }
+                      return (dx > 0 && dy > 0) ? num / Math.sqrt(dx * dy) : null;
+                    };
+
+                    const tickerAnalysis = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(t => {
+                      const items = validated.filter(s => s.tk === t);
+                      const cnt = items.length;
+                      if (cnt < 2) return { tk: t, cnt, corr: null, status: "데이터 부족", label: "최소 3건 필요", color: C.muted, emoji: "⏳" };
+                      const corr = pearson(items.map(s => s.entryPct), items.map(s => s.netReturnPct));
+                      const avgRet = items.reduce((a, s) => a + s.netReturnPct, 0) / cnt;
+                      let status, label, color, emoji;
+                      if (cnt < 5) { status = "검증 부족"; label = `${cnt}건 (5건+ 권장)`; color = "#a78bfa"; emoji = "🔸"; }
+                      else if (corr == null || isNaN(corr)) { status = "측정 불가"; label = "데이터 분산 없음"; color = C.muted; emoji = "⚪"; }
+                      else if (corr >= 0.5) { status = "매우 유효"; label = "점수 시스템 적극 활용"; color = C.green; emoji = "⭐"; }
+                      else if (corr >= 0.3) { status = "양호"; label = "점수 시스템 신뢰 가능"; color = "#84cc16"; emoji = "✅"; }
+                      else if (corr >= 0.1) { status = "약함"; label = "점수 + 다른 지표 병행"; color = C.amber; emoji = "🔹"; }
+                      else if (corr >= -0.1) { status = "무관"; label = "점수와 수익 관련 없음"; color = "#f97316"; emoji = "⚪"; }
+                      else { status = "역효과"; label = "⚠️ 점수 시스템 부적합"; color = C.red; emoji = "❌"; }
+                      return { tk, cnt, corr, avgRet, status, label, color, emoji };
+                    });
+
+                    return (
+                      <div style={{ background: "linear-gradient(135deg, #ecfeff 0%, #cffafe 100%)", border: "2px solid #06b6d4", borderRadius: 12, padding: "14px 15px", marginBottom: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                          <span style={{ fontSize: 14 }}>🧠</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#155e75", letterSpacing: 0.3 }}>종목별 점수 시스템 적합도</span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {tickerAnalysis.map(({ tk, cnt, corr, avgRet, status, label, color, emoji }) => (
+                            <div key={tk} style={{ background: "#fff", borderRadius: 9, padding: "9px 12px", borderLeft: `4px solid ${color}` }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <span style={{ fontSize: 14 }}>{emoji}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{tk}</span>
+                                  <span style={{ fontSize: 9, color: C.muted }}>{cnt}건</span>
+                                </div>
+                                <div style={{ textAlign: "right" }}>
+                                  <span style={{ fontSize: 12, fontWeight: 800, color }}>{status}</span>
+                                  {corr != null && <span style={{ fontSize: 10, color, marginLeft: 5 }}>r={corr.toFixed(2)}</span>}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 10, color: C.muted, marginLeft: 24 }}>{label}{avgRet != null && ` · 평균 ${avgRet > 0 ? "+" : ""}${avgRet.toFixed(2)}%`}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 9, color: "#155e75", marginTop: 8, lineHeight: 1.5 }}>
+                          ✨ 종목마다 점수 시스템이 다르게 작동합니다. 역효과(❌)면 다른 지표 참고 필요
                         </div>
                       </div>
                     );
