@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.14";
+const APP_VERSION = "1.0.15";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -943,8 +943,6 @@ export default function App() {
         const ETF_TICKERS = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"];
         const isW = (tk) => ["AMDW", "PLTW"].includes(tk);
         const vixNow = quotes["^VIX"]?.price ?? (manualVix ? parseFloat(manualVix) : 18);
-        const BASE_VIX = 18;
-        const vixAdj = Math.min(2.5, Math.max(0.4, vixNow / BASE_VIX));
         const ranked = ETF_TICKERS
           .map(tk => {
             const q = quotes[tk];
@@ -953,103 +951,118 @@ export default function App() {
             const todayDow = new Date().getDay();
             const daysToDiv = (divWeekday - todayDow + 7) % 7 || 7;
 
-            // HV 기반 예상 (forward-looking: 기초 종목 실현 변동성 → 콜프리미엄 추정)
+            // HV 기반 예상 (forward-looking)
             const hv = baseQ?.hv20;
             const weekPremYield = hv != null ? (hv / 100) * Math.sqrt(7 / 365) * 0.4 : null;
             const hvDiv = weekPremYield && q?.price ? q.price * weekPremYield * ETF_CAPTURE : null;
             const hvAnnual = hvDiv ? hvDiv * 52 : null;
             const hvYield = hvAnnual && q?.price ? (hvAnnual / q.price) * 100 : null;
 
-            // VIX 보정 (과거 1회 × VIX/18)
-            const estDiv = q?.lastDiv ? q.lastDiv * vixAdj : null;
-            const estAnnual = estDiv ? estDiv * 52 : null;
-            const estYield = estAnnual && q?.price ? (estAnnual / q.price) * 100 : null;
-
-            // 과거 단순 (참고용)
-            const histAnnual = q?.lastDiv ? q.lastDiv * 52 : null;
+            // 직전 배당금 (Yahoo Finance 최근 1회)
+            const lastDiv = q?.lastDiv;
+            const histAnnual = lastDiv ? lastDiv * 52 : null;
             const histYield = histAnnual && q?.price ? (histAnnual / q.price) * 100 : null;
 
-            return { tk, q, baseQ, daysToDiv, hv, hvDiv, hvAnnual, hvYield, estDiv, estAnnual, estYield, histAnnual, histYield };
+            return { tk, q, baseQ, daysToDiv, hv, hvDiv, hvAnnual, hvYield, lastDiv, histAnnual, histYield };
           })
-          .sort((a, b) => (b.hvYield ?? b.estYield ?? -1) - (a.hvYield ?? a.estYield ?? -1));
+          .sort((a, b) => (b.hvYield ?? -1) - (a.hvYield ?? -1));
 
         const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
-        const vixLabel = vixNow >= 25 ? "고변동 — 프리미엄 높음" : vixNow >= 15 ? "정상 — 프리미엄 적정" : "저변동 — 프리미엄 낮음";
+        const vixLabel = vixNow >= 25 ? "고변동 · 프리미엄 ↑" : vixNow >= 15 ? "정상 · 프리미엄 적정" : "저변동 · 프리미엄 ↓";
         const vixColor = vixNow >= 25 ? "#22c55e" : vixNow >= 15 ? "#f59e0b" : "#94a3b8";
+        const usdkrw = quotes["KRW=X"]?.price;
         return (
           <div style={{ padding: "0 2px" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>예상 배당 순위</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>📊 예상 배당 순위</div>
 
             {/* VIX 현재 상태 */}
-            <div style={{ background: `${vixColor}18`, border: `1.5px solid ${vixColor}55`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: `${vixColor}15`, border: `1.5px solid ${vixColor}55`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>현재 VIX (기준 18)</div>
+                <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>현재 VIX</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{vixNow.toFixed(2)}</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: vixColor }}>{vixLabel}</div>
-                <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>조정계수 ×{vixAdj.toFixed(2)}</div>
               </div>
             </div>
 
-            {ranked.map(({ tk, q, baseQ, daysToDiv, hv, hvDiv, hvAnnual, hvYield, estDiv, estAnnual, estYield, histAnnual, histYield }, i) => {
+            {ranked.map(({ tk, q, baseQ, daysToDiv, hv, hvDiv, hvAnnual, hvYield, lastDiv, histAnnual, histYield }, i) => {
               if (!q?.ok) return null;
-              const primaryYield = hvYield ?? estYield;
-              const yieldColor = primaryYield >= 60 ? "#22c55e" : primaryYield >= 40 ? "#f59e0b" : "#94a3b8";
-              const usdkrw = quotes["KRW=X"]?.price;
+              const yieldColor = hvYield >= 60 ? "#22c55e" : hvYield >= 40 ? "#f59e0b" : "#94a3b8";
               return (
-                <div key={tk} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>{medals[i]}</span>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{tk}</div>
-                        <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{isW(tk) ? "Roundhill 월요일" : "YieldMax 목요일"} · {BASE_MAP[tk]} HV20: {hv ? hv.toFixed(1) + "%" : "-"}</div>
+                <div key={tk} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "0", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+                  {/* 카드 헤더 */}
+                  <div style={{ background: `linear-gradient(135deg, ${yieldColor}10, ${yieldColor}05)`, padding: "14px 16px", borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 22 }}>{medals[i]}</span>
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: -0.3 }}>{tk}</div>
+                          <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{isW(tk) ? "🔵 Roundhill · 매주 월요일" : "🟡 YieldMax · 매주 목요일"}</div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: yieldColor, lineHeight: 1 }}>{hvYield ? hvYield.toFixed(1) + "%" : "-"}</div>
+                        <div style={{ fontSize: 9, color: C.muted, marginTop: 3 }}>예상 연환산</div>
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: yieldColor }}>{primaryYield ? primaryYield.toFixed(1) + "%" : "-"}</div>
-                      <div style={{ fontSize: 9, color: C.muted }}>HV 기반 연환산</div>
+                  </div>
+
+                  {/* 두 가지 배당 정보 */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+                    {/* HV 기반 예상 */}
+                    <div style={{ padding: "12px 14px", borderRight: `1px solid ${C.border}`, background: "#f8faff" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                        <span style={{ fontSize: 11 }}>🎯</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#1e40af" }}>HV 기반 예상</span>
+                      </div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: "#1d4ed8", lineHeight: 1.2 }}>{hvDiv ? `$${hvDiv.toFixed(4)}` : "-"}</div>
+                      {hvDiv && usdkrw && <div style={{ fontSize: 17, fontWeight: 800, color: "#1d4ed8", lineHeight: 1.2, marginTop: 1 }}>₩{Math.round(hvDiv * usdkrw).toLocaleString()}</div>}
+                      <div style={{ fontSize: 9, color: "#475569", marginTop: 7, paddingTop: 7, borderTop: `1px dashed ${C.border}` }}>
+                        <div>연 {hvAnnual ? `$${hvAnnual.toFixed(2)}` : "-"}</div>
+                        {hvAnnual && usdkrw && <div>₩{Math.round(hvAnnual * usdkrw).toLocaleString()}</div>}
+                      </div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 5 }}>{BASE_MAP[tk]} HV20: {hv ? hv.toFixed(1) + "%" : "-"}</div>
+                    </div>
+
+                    {/* 직전 배당금 */}
+                    <div style={{ padding: "12px 14px", background: "#fafafa" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                        <span style={{ fontSize: 11 }}>📊</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#475569" }}>직전 배당금</span>
+                      </div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, lineHeight: 1.2 }}>{lastDiv ? `$${lastDiv.toFixed(4)}` : "-"}</div>
+                      {lastDiv && usdkrw && <div style={{ fontSize: 17, fontWeight: 800, color: C.text, lineHeight: 1.2, marginTop: 1 }}>₩{Math.round(lastDiv * usdkrw).toLocaleString()}</div>}
+                      <div style={{ fontSize: 9, color: "#475569", marginTop: 7, paddingTop: 7, borderTop: `1px dashed ${C.border}` }}>
+                        <div>연 {histAnnual ? `$${histAnnual.toFixed(2)}` : "-"}</div>
+                        {histAnnual && usdkrw && <div>₩{Math.round(histAnnual * usdkrw).toLocaleString()}</div>}
+                      </div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 5 }}>{q.lastDivDate ?? "-"} · {histYield ? histYield.toFixed(1) + "%" : "-"}</div>
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
-                    <div style={{ background: "#eff6ff", borderRadius: 8, padding: "8px 10px", border: "1.5px solid #93c5fd" }}>
-                      <div style={{ fontSize: 9, color: "#1e40af", marginBottom: 2, fontWeight: 700 }}>🎯 HV 기반 예상 (forward)</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: "#1d4ed8" }}>{hvDiv ? `$${hvDiv.toFixed(4)}` : "-"}</div>
-                      {hvDiv && usdkrw && <div style={{ fontSize: 14, fontWeight: 800, color: "#1d4ed8" }}>₩{Math.round(hvDiv * usdkrw).toLocaleString()}</div>}
-                      <div style={{ fontSize: 9, color: "#1e40af", marginTop: 2 }}>연 {hvAnnual ? `$${hvAnnual.toFixed(2)}` : "-"}{hvAnnual && usdkrw ? ` · ₩${Math.round(hvAnnual * usdkrw).toLocaleString()}` : ""}</div>
+                  {/* 카드 푸터 */}
+                  <div style={{ padding: "10px 14px", background: C.bg, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: 10, color: C.muted }}>
+                      <span style={{ color: C.text, fontWeight: 600 }}>${q.price?.toFixed(2)}</span>
+                      {usdkrw && <span style={{ color: C.text, fontWeight: 600 }}> · ₩{Math.round(q.price * usdkrw).toLocaleString()}</span>}
+                      <span style={{ marginLeft: 6, color: q.changePct >= 0 ? C.green : C.red, fontWeight: 600 }}>
+                        {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
+                      </span>
                     </div>
-                    <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "8px 10px", border: "1px solid #bbf7d0" }}>
-                      <div style={{ fontSize: 9, color: "#166534", marginBottom: 2, fontWeight: 600 }}>VIX 보정 (과거×{vixAdj.toFixed(2)})</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>{estDiv ? `$${estDiv.toFixed(4)}` : "-"}</div>
-                      {estDiv && usdkrw && <div style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>₩{Math.round(estDiv * usdkrw).toLocaleString()}</div>}
-                      <div style={{ fontSize: 9, color: "#166534", marginTop: 2 }}>연 {estAnnual ? `$${estAnnual.toFixed(2)}` : "-"}{estAnnual && usdkrw ? ` · ₩${Math.round(estAnnual * usdkrw).toLocaleString()}` : ""} ({estYield ? estYield.toFixed(1) + "%" : "-"})</div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.bg, borderRadius: 8, padding: "6px 10px", marginBottom: 6, fontSize: 9, color: C.muted, display: "flex", justifyContent: "space-between" }}>
-                    <span>최근 실제: ${q.lastDiv ? q.lastDiv.toFixed(4) : "-"}{q.lastDiv && usdkrw ? ` · ₩${Math.round(q.lastDiv * usdkrw).toLocaleString()}` : ""} · 연 ${histAnnual ? histAnnual.toFixed(2) : "-"}{histAnnual && usdkrw ? ` · ₩${Math.round(histAnnual * usdkrw).toLocaleString()}` : ""} ({histYield ? histYield.toFixed(1) + "%" : "-"})</span>
-                    <span>{q.lastDivDate ?? "-"}</span>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontSize: 10, color: C.muted }}>현재가 ${q.price?.toFixed(2)}{usdkrw ? ` (≈₩${Math.round(q.price * usdkrw).toLocaleString()})` : ""} · D-{daysToDiv}</div>
-                    <div style={{ fontSize: 10, color: q.changePct >= 0 ? C.green : C.red, fontWeight: 600 }}>
-                      {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
-                    </div>
+                    <div style={{ background: daysToDiv <= 3 ? "#fef3c7" : "#e2e8f0", color: daysToDiv <= 3 ? "#92400e" : "#475569", borderRadius: 6, padding: "3px 9px", fontSize: 10, fontWeight: 700 }}>D-{daysToDiv}</div>
                   </div>
                 </div>
               );
             })}
 
-            <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "11px 14px", marginTop: 4 }}>
-              <div style={{ fontSize: 10, color: "#93c5fd", fontWeight: 700, marginBottom: 4 }}>ℹ️ 계산 방식</div>
+            <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "12px 14px", marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 계산 방식</div>
               <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
-                · <strong style={{color:"#93c5fd"}}>🎯 HV 기반 (forward)</strong> = 기초종목 20일 실현변동성으로 다음주 콜프리미엄 추정<br/>
-                · 공식: ETF가격 × HV × √(7/365) × 0.4 × {ETF_CAPTURE}(ETF 캡처율)<br/>
-                · VIX 보정 = 최근 1회 배당 × (현재VIX ÷ 18), 0.4~2.5배 제한<br/>
-                · 순위는 HV 기반 예상 수익률 기준 정렬
+                · <strong style={{color:"#93c5fd"}}>🎯 HV 기반 예상</strong>: 기초종목 20일 실현변동성으로 다음주 콜프리미엄 추정 (forward-looking)<br/>
+                · <strong style={{color:"#cbd5e1"}}>📊 직전 배당금</strong>: Yahoo Finance 최근 1회 실제 지급액<br/>
+                · 공식: ETF가격 × HV × √(7/365) × 0.4 × {ETF_CAPTURE} (캡처율)<br/>
+                · 순위는 HV 기반 예상 수익률 기준
               </div>
             </div>
           </div>
