@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.24";
+const APP_VERSION = "1.0.25";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -1522,7 +1522,7 @@ export default function App() {
             {snaps.length === 0 && (
               <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 12 }}>
                 {predictFilter === "ALL" ? "아직 수집된 스냅샷이 없습니다." : `${predictFilter} 데이터 없음.`}<br/><br/>
-                매주 수요일/금요일 KST 04:30에 자동 캡처됩니다.<br/>(수: NVDY/AMDY/TSMY · 금: AMDW/PLTW)
+                미국 장 마감 직전 자동 캡처됩니다.<br/>· 미국 수요일 (KST 목요일 새벽): NVDY/AMDY/TSMY<br/>· 미국 금요일 (KST 토요일 새벽): AMDW/PLTW
               </div>
             )}
 
@@ -1600,7 +1600,7 @@ export default function App() {
               <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 자동 캡처 안내</div>
               <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
                 · GitHub Actions가 3시간마다 자동 실행<br/>
-                · 수: NVDY/AMDY/TSMY · 금: AMDW/PLTW 예측 캡처<br/>
+                · 미국 수 (KST 목 새벽): NVDY/AMDY/TSMY 캡처<br/>· 미국 금 (KST 토 새벽): AMDW/PLTW 캡처<br/>
                 · 배당 지급 후 자동 매칭 + 순수익 계산 (ex-div + 1일)<br/>
                 · {predictionLog.updatedAt ? `업데이트: ${new Date(predictionLog.updatedAt).toLocaleString("ko-KR")}` : "초기 상태"}
               </div>
