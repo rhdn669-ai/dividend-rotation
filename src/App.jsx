@@ -372,7 +372,7 @@ export default function App() {
         {tab === "signal" && (
           <div>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>YieldMax · 월배당</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>YieldMax · 주배당 (매주 목요일)</div>
               <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                 {["NVDY", "AMDY", "TSMY"].map((tk) => (
                   <button key={tk} onClick={() => setActiveTicker(tk)}
@@ -382,7 +382,7 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>Roundhill · 주배당</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>Roundhill · 주배당 (매주 월요일)</div>
               <div style={{ display: "flex", gap: 8 }}>
                 {["AMDW", "PLTW"].map((tk) => (
                   <button key={tk} onClick={() => setActiveTicker(tk)}
@@ -672,7 +672,7 @@ export default function App() {
               { term: "커버드콜", full: "Covered Call", desc: "보유 주식의 콜옵션을 매도해 프리미엄 수익을 얻는 전략. NVDY·AMDW 등 월배당 수익의 원천. 주가 급등 시 추가 수익이 제한되는 단점." },
               { term: "ETF", full: "상장지수펀드 (Exchange Traded Fund)", desc: "주식처럼 거래소에서 매매 가능한 펀드. 이 앱의 NVDY·AMDW·AMDY·TSMY·PLTW는 모두 커버드콜 전략 ETF." },
               { term: "배당락일", full: "Ex-Dividend Date", desc: "이 날 이후 매수하면 배당을 받지 못함. 배당락일 당일 주가는 배당금만큼 하락하는 경향이 있어 진입 타이밍으로 활용." },
-              { term: "YieldMax", full: "YieldMax ETF (운용사)", desc: "커버드콜 ETF 전문 운용사. NVDY·AMDY·TSMY·PLTW 등 운용. 매월 배당 지급." },
+              { term: "YieldMax", full: "YieldMax ETF (운용사)", desc: "커버드콜 ETF 전문 운용사. NVDY·AMDY·TSMY·PLTW 등 운용. 매주 목요일 배당락." },
               { term: "Roundhill", full: "Roundhill Investments (운용사)", desc: "위클리 커버드콜 ETF 운용사. AMDW 등 운용. 매주 배당 지급이 특징." },
               { term: "QQQ", full: "나스닥 100 ETF (Invesco QQQ)", desc: "나스닥 100 지수를 추종하는 ETF. 기술주 전반의 흐름을 대표. -2% 이하 급락 시 반도체 섹터 전반에 영향." },
               { term: "시간외 거래", full: "Pre/After-Market Trading", desc: "정규 장(미 동부 9:30~16:00) 외 시간의 거래. 실적 발표 등 이슈에 먼저 반응. ±2% 이상이면 다음 날 변동성 신호." },
