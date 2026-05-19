@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.11";
+const APP_VERSION = "1.0.12";
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
 
 // 기본 이벤트 데이터 (Claude Code에서 분리 시 src/data/events.js로 이동)
@@ -335,11 +335,21 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     if (r.ok) wScore += w;
   });
   const pct = wMax > 0 ? Math.round((wScore / wMax) * 100) : 0;
+
+  // Critical veto: critical 조건 1개라도 실패 시 진입 적합 차단
+  const failedCritical = results.filter(r => r.priority === "critical" && !r.ok);
+  const criticalFails = failedCritical.length;
+  const criticalVeto = criticalFails > 0;
+
   let signal = "위험", signalColor = "#ef4444";
-  if (pct >= 80) { signal = "진입 적합"; signalColor = "#22c55e"; }
+  if (criticalVeto) {
+    // critical 실패 1개 → 주의 관찰, 2개 이상 → 위험
+    signal = criticalFails >= 2 ? "위험 (Critical 다수 실패)" : "주의 관찰 (Critical 실패)";
+    signalColor = criticalFails >= 2 ? "#ef4444" : "#f59e0b";
+  } else if (pct >= 80) { signal = "진입 적합"; signalColor = "#22c55e"; }
   else if (pct >= 50) { signal = "주의 관찰"; signalColor = "#f59e0b"; }
 
-  return { results, score: wScore, total: wMax, pct, signal, signalColor };
+  return { results, score: wScore, total: wMax, pct, signal, signalColor, failedCritical, criticalVeto };
 }
 
 // ─── 통계 계산 (회전이력 탭용) ─────────────────────────────────────────────
@@ -552,6 +562,22 @@ export default function App() {
         {/* ── 진입신호 탭 ── */}
         {tab === "signal" && (
           <div>
+            {evaluation.criticalVeto && (
+              <div style={{ background: evaluation.failedCritical.length >= 2 ? "#fef2f2" : "#fffbeb", border: `2px solid ${evaluation.failedCritical.length >= 2 ? "#ef4444" : "#f59e0b"}`, borderRadius: 10, padding: "11px 14px", marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: evaluation.failedCritical.length >= 2 ? "#991b1b" : "#92400e", marginBottom: 5, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>⚠️</span>
+                  <span>핵심 조건 {evaluation.failedCritical.length}개 실패 — 진입 부적합</span>
+                </div>
+                <div style={{ fontSize: 10, color: evaluation.failedCritical.length >= 2 ? "#7f1d1d" : "#78350f", lineHeight: 1.6 }}>
+                  {evaluation.failedCritical.map((r, i) => (
+                    <div key={i}>· {r.label} — {r.detail}</div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: evaluation.failedCritical.length >= 2 ? "#991b1b" : "#92400e", marginTop: 5, fontStyle: "italic" }}>
+                  점수와 무관하게 critical 조건 실패 시 진입 비추천
+                </div>
+              </div>
+            )}
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>YieldMax · 주배당 (매주 목요일)</div>
               <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
