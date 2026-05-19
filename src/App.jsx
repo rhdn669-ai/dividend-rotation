@@ -318,6 +318,7 @@ export default function App() {
     { id: "calendar", label: "📅 이벤트" },
     { id: "log", label: "🔄 회전이력" },
     { id: "guide", label: "📖 가이드" },
+    { id: "glossary", label: "📚 용어" },
   ];
 
   const C = {
@@ -643,6 +644,37 @@ export default function App() {
               <div key={i} style={{ background: item.warning ? "#fff5f5" : C.card, border: `1px solid ${item.warning ? "#fecaca" : C.border}`, borderRadius: 12, padding: "13px 15px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: item.warning ? "#dc2626" : C.sub, marginBottom: 7 }}>{item.title}</div>
                 <div style={{ fontSize: 11, color: item.warning ? "#ef4444" : C.sub, lineHeight: 1.7 }}>{item.content}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── 용어 탭 ── */}
+        {tab === "glossary" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {[
+              { term: "CPI", full: "소비자물가지수 (Consumer Price Index)", desc: "물가상승률 지표. 발표 시 금리 변동 가능성에 따라 주식·채권 시장 변동성 급증. 매월 중순 미국 노동통계국(BLS) 발표." },
+              { term: "FOMC", full: "연방공개시장위원회 (Federal Open Market Committee)", desc: "미국 기준금리를 결정하는 기구. 연 8회 회의 개최. 발표일 전후 시장 변동성이 급증하므로 진입을 피하는 것이 원칙." },
+              { term: "VIX", full: "공포지수 (CBOE Volatility Index)", desc: "S&P500 옵션의 30일 예상 변동성 지수. 20 미만: 시장 안정 / 20~30: 주의 구간 / 30 이상: 극도 공포. 높을수록 커버드콜 ETF 리스크 증가." },
+              { term: "커버드콜", full: "Covered Call", desc: "보유 주식의 콜옵션을 매도해 프리미엄 수익을 얻는 전략. NVDY·AMDW 등 월배당 수익의 원천. 주가 급등 시 추가 수익이 제한되는 단점." },
+              { term: "ETF", full: "상장지수펀드 (Exchange Traded Fund)", desc: "주식처럼 거래소에서 매매 가능한 펀드. 이 앱의 NVDY·AMDW·AMDY·TSMY·PLTW는 모두 커버드콜 전략 ETF." },
+              { term: "배당락일", full: "Ex-Dividend Date", desc: "이 날 이후 매수하면 배당을 받지 못함. 배당락일 당일 주가는 배당금만큼 하락하는 경향이 있어 진입 타이밍으로 활용." },
+              { term: "YieldMax", full: "YieldMax ETF (운용사)", desc: "커버드콜 ETF 전문 운용사. NVDY·AMDY·TSMY·PLTW 등 운용. 매월 배당 지급." },
+              { term: "Roundhill", full: "Roundhill Investments (운용사)", desc: "위클리 커버드콜 ETF 운용사. AMDW 등 운용. 매주 배당 지급이 특징." },
+              { term: "QQQ", full: "나스닥 100 ETF (Invesco QQQ)", desc: "나스닥 100 지수를 추종하는 ETF. 기술주 전반의 흐름을 대표. -2% 이하 급락 시 반도체 섹터 전반에 영향." },
+              { term: "시간외 거래", full: "Pre/After-Market Trading", desc: "정규 장(미 동부 9:30~16:00) 외 시간의 거래. 실적 발표 등 이슈에 먼저 반응. ±2% 이상이면 다음 날 변동성 신호." },
+              { term: "NVDA", full: "엔비디아 (NVIDIA Corporation)", desc: "AI·데이터센터용 GPU 제조사. NVDY의 기반 종목. TSMC에서 위탁 생산." },
+              { term: "AMD", full: "AMD (Advanced Micro Devices)", desc: "CPU·GPU 제조사. AMDW·AMDY의 기반 종목. TSMC에서 위탁 생산." },
+              { term: "TSM", full: "TSMC (Taiwan Semiconductor)", desc: "세계 최대 반도체 파운드리. NVDA·AMD 칩을 위탁 생산. TSMY의 기반 종목. 실적 발표가 반도체 섹터 전반에 영향." },
+              { term: "PLTR", full: "팔란티어 (Palantir Technologies)", desc: "빅데이터·AI 분석 소프트웨어 기업. PLTW의 기반 종목. 정부 계약 의존도 높아 정책 변화에 민감." },
+              { term: "원천징수", full: "Withholding Tax", desc: "미국 배당 수령 시 15% 자동 차감. 한미 조세조약에 의한 세율. 금융소득 연 2,000만원 초과 시 종합과세 대상 (출처: 국세청)." },
+            ].map((item, i) => (
+              <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "13px 15px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: C.blue }}>{item.term}</span>
+                  <span style={{ fontSize: 10, color: C.muted }}>{item.full}</span>
+                </div>
+                <div style={{ fontSize: 11, color: C.sub, lineHeight: 1.8 }}>{item.desc}</div>
               </div>
             ))}
           </div>
