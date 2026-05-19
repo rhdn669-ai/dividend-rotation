@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const TICKERS = ["NVDY", "AMDW", "NVDA", "AMD", "^VIX", "QQQ"];
+const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "NVDA", "AMD", "TSM", "^VIX", "QQQ"];
 
 // 기본 이벤트 데이터 (Claude Code에서 분리 시 src/data/events.js로 이동)
 // 출처: federalreserve.gov, bls.gov, 각 사 IR
@@ -108,7 +108,8 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
   total++; if (evOk) score++;
 
   // 2. 실적 발표 (NVDA/AMD/TSMC - 오늘부터 2일 이내)
-  const targetCo = targetTicker === "NVDY" ? "NVDA" : "AMD";
+  const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM" };
+  const targetCo = BASE_MAP[targetTicker] || "NVDA";
   const earningsEv = events.find((e) =>
     e.type === "EARNINGS" &&
     [todayStr, tomorrowStr, dayAfterStr].includes(e.date) &&
@@ -369,8 +370,8 @@ export default function App() {
         {/* ── 진입신호 탭 ── */}
         {tab === "signal" && (
           <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              {["NVDY", "AMDW"].map((tk) => (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+              {["NVDY", "AMDW", "AMDY", "TSMY"].map((tk) => (
                 <button key={tk} onClick={() => setActiveTicker(tk)}
                   style={{ flex: 1, padding: "11px", background: activeTicker === tk ? C.blue : C.card, border: `1px solid ${activeTicker === tk ? "#3b82f6" : C.border}`, borderRadius: 12, color: activeTicker === tk ? "#fff" : C.muted, fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all 0.15s" }}>
                   {tk}
@@ -596,11 +597,11 @@ export default function App() {
                   style={inputStyle(C)} />
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <select value={newLog.from} onChange={(e) => setNewLog((p) => ({ ...p, from: e.target.value }))} style={{ ...inputStyle(C), flex: 1 }}>
-                    <option>NVDY</option><option>AMDW</option><option>현금</option>
+                    <option>NVDY</option><option>AMDW</option><option>AMDY</option><option>TSMY</option><option>현금</option>
                   </select>
                   <span style={{ color: C.muted }}>→</span>
                   <select value={newLog.to} onChange={(e) => setNewLog((p) => ({ ...p, to: e.target.value }))} style={{ ...inputStyle(C), flex: 1 }}>
-                    <option>AMDW</option><option>NVDY</option><option>현금</option>
+                    <option>NVDY</option><option>AMDW</option><option>AMDY</option><option>TSMY</option><option>현금</option>
                   </select>
                 </div>
                 <input type="text" placeholder="메모 (선택)" value={newLog.note}
@@ -632,6 +633,8 @@ export default function App() {
               { title: "📊 거래량 신호 (경험칙)", content: "정상: 20일 평균 대비 0.5~1.8배 / 주의: 1.8~2.5배 / 위험: 2.5배+ / 주가 하락 + 거래량 증가 = 매도세 강함 → 진입 금지" },
               { title: "✅ NVDY 진입 조건", content: "배당락 1~2거래일 전 / NVDA 시간외 ±2% 이내 / VIX 20 미만 / 거래량 정상 / 반도체 섹터 안정" },
               { title: "✅ AMDW 진입 조건", content: "AMD 급등락 직후 피하기 / 실적 발표 전후 2거래일 피하기 / 거래량 정상 / 시장 안정 구간에서만" },
+              { title: "✅ AMDY 진입 조건", content: "AMD 급등락 직후 피하기 / 실적 발표 전후 2거래일 피하기 / 거래량 정상 / 시장 안정 구간에서만" },
+              { title: "✅ TSMY 진입 조건", content: "TSM/TSMC 실적 발표 전후 2거래일 피하기 / TSM 급등락 ±3% 이내 / VIX 20 미만 / 거래량 정상" },
               { title: "💡 현실적 운영", content: "전체의 50%만 회전 전략에 사용. 나머지 50%는 장기보유. 급등 시 재진입 기회 확보 목적." },
               { title: "⚠️ 핵심 주의사항", content: "이 앱은 투자 참고용 도구이며 투자 권유가 아닙니다. 배당락일 주가는 배당만큼 하락하는 경향이 있으며 변동성에 따라 손실이 더 클 수 있습니다. 세금·스프레드 비용을 반드시 감안하세요.", warning: true },
               { title: "📚 데이터 출처", content: "시세: Yahoo Finance (비공식, 딜레이 15~20분) / CPI: bls.gov / FOMC: federalreserve.gov / 실적: 각 회사 IR / 배당락일: YieldMax, Roundhill" },
