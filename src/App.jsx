@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.17";
+const APP_VERSION = "1.0.18";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -641,49 +641,60 @@ export default function App() {
                 </div>
               </div>
             )}
+            {/* 통합: 전체 비교 + 종목 선택 (그룹별로 표시, 클릭 시 활성화) */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>YieldMax · 주배당 (매주 목요일)</div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                {["NVDY", "AMDY", "TSMY"].map((tk) => (
-                  <button key={tk} onClick={() => setActiveTicker(tk)}
-                    style={{ flex: 1, padding: "11px", background: activeTicker === tk ? C.blue : C.card, border: `1px solid ${activeTicker === tk ? "#3b82f6" : C.border}`, borderRadius: 12, color: activeTicker === tk ? "#fff" : C.muted, fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all 0.15s" }}>
-                    {tk}
-                    {quotes[tk]?.ok && (<><div style={{ fontSize: 10, fontWeight: 400, marginTop: 3, opacity: 0.85 }}>${quotes[tk].price?.toFixed(2)}</div>{quotes["KRW=X"]?.price && <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.85 }}>₩{Math.round(quotes[tk].price * quotes["KRW=X"].price).toLocaleString()}</div>}</>)}
-                  </button>
-                ))}
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6, letterSpacing: 0.3 }}>Roundhill · 주배당 (매주 월요일)</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {["AMDW", "PLTW"].map((tk) => (
-                  <button key={tk} onClick={() => setActiveTicker(tk)}
-                    style={{ flex: 1, padding: "11px", background: activeTicker === tk ? C.blue : C.card, border: `1px solid ${activeTicker === tk ? "#3b82f6" : C.border}`, borderRadius: 12, color: activeTicker === tk ? "#fff" : C.muted, fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all 0.15s" }}>
-                    {tk}
-                    {quotes[tk]?.ok && (<><div style={{ fontSize: 10, fontWeight: 400, marginTop: 3, opacity: 0.85 }}>${quotes[tk].price?.toFixed(2)}</div>{quotes["KRW=X"]?.price && <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.85 }}>₩{Math.round(quotes[tk].price * quotes["KRW=X"].price).toLocaleString()}</div>}</>)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 전체 비교 */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: 0.3 }}>전체 비교 — 클릭하면 상세 확인</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.text, letterSpacing: 0.2 }}>📊 종목 비교 · 탭하면 상세 평가</div>
                 <button onClick={saveSnapshot}
-                  style={{ background: C.blue, border: "none", borderRadius: 7, color: "#fff", padding: "4px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>📥 저장</button>
+                  style={{ background: C.blue, border: "none", borderRadius: 7, color: "#fff", padding: "5px 11px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>📥 저장</button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                {[...allEvaluations].sort((a, b) => b.pct - a.pct).map((ev) => (
-                  <div key={ev.ticker} onClick={() => setActiveTicker(ev.ticker)}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: activeTicker === ev.ticker ? `${ev.signalColor}12` : C.card, border: `1px solid ${activeTicker === ev.ticker ? ev.signalColor + "60" : C.border}`, borderRadius: 10, padding: "8px 12px", cursor: "pointer", transition: "all 0.15s" }}>
-                    <span style={{ fontWeight: 800, fontSize: 12, color: activeTicker === ev.ticker ? ev.signalColor : C.text, minWidth: 36 }}>{ev.ticker}</span>
-                    <div style={{ flex: 1, height: 5, background: C.border, borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{ height: "100%", borderRadius: 99, background: ev.signalColor, width: `${ev.pct}%`, transition: "width 0.5s ease" }} />
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: ev.signalColor, minWidth: 32, textAlign: "right" }}>{ev.pct}%</span>
-                    <span style={{ fontSize: 10, color: ev.signalColor, minWidth: 52 }}>{ev.signal}</span>
+
+              {[
+                { group: "YieldMax · 매주 목요일", tickers: ["NVDY", "AMDY", "TSMY"], color: "#f59e0b" },
+                { group: "Roundhill · 매주 월요일", tickers: ["AMDW", "PLTW"], color: "#3b82f6" },
+              ].map(({ group, tickers, color }) => (
+                <div key={group} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, marginBottom: 5, letterSpacing: 0.4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 99, background: color, display: "inline-block" }}></span>
+                    {group}
                   </div>
-                ))}
-              </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    {tickers
+                      .map(tk => allEvaluations.find(ev => ev.ticker === tk))
+                      .filter(Boolean)
+                      .sort((a, b) => b.pct - a.pct)
+                      .map((ev) => {
+                        const q = quotes[ev.ticker];
+                        const isActive = activeTicker === ev.ticker;
+                        const usdkrw = quotes["KRW=X"]?.price;
+                        return (
+                          <div key={ev.ticker} onClick={() => setActiveTicker(ev.ticker)}
+                            style={{ background: isActive ? `${ev.signalColor}10` : C.card, border: `1.5px solid ${isActive ? ev.signalColor + "70" : C.border}`, borderRadius: 11, padding: "9px 12px", cursor: "pointer", transition: "all 0.15s", boxShadow: isActive ? `0 2px 8px ${ev.signalColor}20` : "none" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}>
+                              <span style={{ fontWeight: 800, fontSize: 14, color: isActive ? ev.signalColor : C.text, minWidth: 48 }}>{ev.ticker}</span>
+                              <div style={{ flex: 1, height: 6, background: C.border, borderRadius: 99, overflow: "hidden" }}>
+                                <div style={{ height: "100%", borderRadius: 99, background: ev.signalColor, width: `${ev.pct}%`, transition: "width 0.5s ease" }} />
+                              </div>
+                              <span style={{ fontSize: 12, fontWeight: 800, color: ev.signalColor, minWidth: 38, textAlign: "right" }}>{ev.pct}%</span>
+                              <span style={{ fontSize: 9, color: "#fff", background: ev.signalColor, borderRadius: 5, padding: "2px 6px", fontWeight: 700, whiteSpace: "nowrap" }}>{ev.signal.split(" ")[0]}</span>
+                            </div>
+                            {q?.ok && (
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 10, color: C.muted, paddingLeft: 2 }}>
+                                <span>
+                                  <span style={{ color: C.text, fontWeight: 600 }}>${q.price?.toFixed(2)}</span>
+                                  {usdkrw && <span style={{ color: C.text, fontWeight: 600 }}> · ₩{Math.round(q.price * usdkrw).toLocaleString()}</span>}
+                                </span>
+                                <span style={{ color: q.changePct >= 0 ? C.green : C.red, fontWeight: 600 }}>
+                                  {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              ))}
             </div>
 
                         {/* 신호 카드 */}
