@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.16";
+const APP_VERSION = "1.0.17";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -355,13 +355,56 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
 
   let signal = "위험", signalColor = "#ef4444";
   if (criticalVeto) {
-    // critical 실패 1개 → 주의 관찰, 2개 이상 → 위험
     signal = criticalFails >= 2 ? "위험 (Critical 다수 실패)" : "주의 관찰 (Critical 실패)";
     signalColor = criticalFails >= 2 ? "#ef4444" : "#f59e0b";
   } else if (pct >= 80) { signal = "진입 적합"; signalColor = "#22c55e"; }
   else if (pct >= 50) { signal = "주의 관찰"; signalColor = "#f59e0b"; }
 
-  return { results, score: wScore, total: wMax, pct, signal, signalColor, failedCritical, criticalVeto };
+  // 등급 (S/A+/A/B+/B/C/D/F)
+  let grade;
+  if (criticalVeto) grade = criticalFails >= 2 ? "F" : "C";
+  else if (pct >= 95) grade = "S";
+  else if (pct >= 90) grade = "A+";
+  else if (pct >= 85) grade = "A";
+  else if (pct >= 80) grade = "B+";
+  else if (pct >= 70) grade = "B";
+  else if (pct >= 60) grade = "C+";
+  else if (pct >= 50) grade = "C";
+  else if (pct >= 35) grade = "D";
+  else grade = "F";
+
+  // 코멘트 생성 (강점/약점 + 종합)
+  const failed = results.filter(r => !r.ok);
+  const passed = results.filter(r => r.ok);
+  const failedCriticalLabels = failed.filter(r => r.priority === "critical").map(r => r.label.replace(/^[\d\.\s]+/, ""));
+  const failedHighLabels = failed.filter(r => r.priority === "high").map(r => r.label.replace(/^[\d\.\s]+/, ""));
+  const passedCriticalCount = passed.filter(r => r.priority === "critical").length;
+  const passedHighCount = passed.filter(r => r.priority === "high").length;
+
+  const cons = [];
+  failedCriticalLabels.forEach(l => cons.push(`🔴 ${l}`));
+  failedHighLabels.forEach(l => cons.push(`🟠 ${l}`));
+  failed.filter(r => r.priority === "mid").slice(0, 2).forEach(r => cons.push(`🟡 ${r.label}`));
+
+  const pros = [];
+  if (passedCriticalCount === 3) pros.push("✅ 이벤트/VIX 핵심 3개 모두 안전");
+  else if (passedCriticalCount >= 1) {
+    passed.filter(r => r.priority === "critical").slice(0, 2).forEach(r => pros.push(`✅ ${r.label}`));
+  }
+  if (passedHighCount >= 1) {
+    passed.filter(r => r.priority === "high").slice(0, 2).forEach(r => pros.push(`✅ ${r.label}`));
+  }
+
+  let summary;
+  if (criticalFails >= 2) summary = `핵심 조건 ${criticalFails}개 실패 — 진입 절대 금지`;
+  else if (criticalFails === 1) summary = `${failedCriticalLabels[0]} 위반 — 결과 확인 후 다음 회 대기`;
+  else if (pct >= 95) summary = "거의 완벽한 진입 타이밍";
+  else if (pct >= 85) summary = "주요 조건 충족, 진입 양호";
+  else if (pct >= 80) summary = "기본 조건 통과, 진입 가능";
+  else if (pct >= 60) summary = "일부 조건 부족, 신중히 결정";
+  else summary = "다수 조건 불충족, 진입 비추천";
+
+  return { results, score: wScore, total: wMax, pct, signal, signalColor, failedCritical, criticalVeto, grade, summary, pros: pros.slice(0, 3), cons: cons.slice(0, 3) };
 }
 
 // ─── 통계 계산 (회전이력 탭용) ─────────────────────────────────────────────
@@ -644,28 +687,80 @@ export default function App() {
             </div>
 
                         {/* 신호 카드 */}
-            <div style={{ background: C.card, border: `2px solid ${evaluation.signalColor}40`, borderRadius: 16, padding: "18px", marginBottom: 14, textAlign: "center", boxShadow: `0 4px 20px ${evaluation.signalColor}15` }}>
-              <div style={{ fontSize: 30, fontWeight: 800, color: evaluation.signalColor }}>{evaluation.signal}</div>
-              <div style={{ fontSize: 12, color: C.sub, marginTop: 4 }}>{activeTicker} 진입 조건 {evaluation.score}/{evaluation.total} 충족</div>
-              <div style={{ height: 5, background: C.border, borderRadius: 99, marginTop: 10, overflow: "hidden" }}>
+            <div style={{ background: C.card, border: `2px solid ${evaluation.signalColor}40`, borderRadius: 16, padding: "16px 18px", marginBottom: 14, boxShadow: `0 4px 20px ${evaluation.signalColor}15` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: evaluation.signalColor, lineHeight: 1.1 }}>{evaluation.signal}</div>
+                  <div style={{ fontSize: 11, color: C.sub, marginTop: 4 }}>{activeTicker} 진입 평가</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 5 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: evaluation.signalColor, lineHeight: 1 }}>{evaluation.score}</span>
+                    <span style={{ fontSize: 14, color: C.muted, fontWeight: 600 }}>/ {evaluation.total}점</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end", marginTop: 3 }}>
+                    <span style={{ background: evaluation.signalColor, color: "#fff", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 800 }}>{evaluation.grade}</span>
+                    <span style={{ fontSize: 10, color: C.muted }}>{evaluation.pct}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ height: 6, background: C.border, borderRadius: 99, overflow: "hidden", marginBottom: 12 }}>
                 <div style={{ height: "100%", borderRadius: 99, background: evaluation.signalColor, width: `${evaluation.pct}%`, transition: "width 0.5s ease" }} />
               </div>
-              <div style={{ fontSize: 10, color: C.muted, marginTop: 5 }}>{evaluation.pct}% 충족</div>
+
+              {/* 코멘트 박스 */}
+              <div style={{ background: `${evaluation.signalColor}10`, borderRadius: 9, padding: "9px 12px", marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: evaluation.signalColor, lineHeight: 1.4 }}>💬 {evaluation.summary}</div>
+              </div>
+
+              {/* 강점/약점 */}
+              {(evaluation.pros.length > 0 || evaluation.cons.length > 0) && (
+                <div style={{ display: "grid", gridTemplateColumns: evaluation.pros.length > 0 && evaluation.cons.length > 0 ? "1fr 1fr" : "1fr", gap: 6 }}>
+                  {evaluation.pros.length > 0 && (
+                    <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "8px 10px", border: "1px solid #bbf7d0" }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#166534", marginBottom: 4 }}>강점</div>
+                      {evaluation.pros.map((p, i) => (
+                        <div key={i} style={{ fontSize: 10, color: "#15803d", lineHeight: 1.5 }}>{p}</div>
+                      ))}
+                    </div>
+                  )}
+                  {evaluation.cons.length > 0 && (
+                    <div style={{ background: "#fef2f2", borderRadius: 8, padding: "8px 10px", border: "1px solid #fecaca" }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#991b1b", marginBottom: 4 }}>약점</div>
+                      {evaluation.cons.map((c, i) => (
+                        <div key={i} style={{ fontSize: 10, color: "#b91c1c", lineHeight: 1.5 }}>{c}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* 우선순위별 그룹 */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.red, marginBottom: 6, letterSpacing: 0.5 }}>🔴 핵심 조건</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.red, marginBottom: 6, letterSpacing: 0.5 }}>🔴 핵심 조건 (Critical · 5점)</div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-              {sortedResults.filter((r) => r.priority === "high").map((r, i) => (
-                <ConditionCard key={"h" + i} r={r} C={C} />
+              {sortedResults.filter((r) => r.priority === "critical").map((r, i) => (
+                <ConditionCard key={"c" + i} r={r} C={C} />
               ))}
             </div>
 
+            {sortedResults.some((r) => r.priority === "high") && (
+              <>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#f97316", marginBottom: 6, letterSpacing: 0.5 }}>🟠 중요 조건 (High · 4점)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                  {sortedResults.filter((r) => r.priority === "high").map((r, i) => (
+                    <ConditionCard key={"h" + i} r={r} C={C} />
+                  ))}
+                </div>
+              </>
+            )}
+
             {sortedResults.some((r) => r.priority === "mid") && (
               <>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.amber, marginBottom: 6, letterSpacing: 0.5 }}>🟡 보조 조건</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.amber, marginBottom: 6, letterSpacing: 0.5 }}>🟡 보조 조건 (Mid · 3점)</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
                   {sortedResults.filter((r) => r.priority === "mid").map((r, i) => (
                     <ConditionCard key={"m" + i} r={r} C={C} />
@@ -676,10 +771,21 @@ export default function App() {
 
             {sortedResults.some((r) => r.priority === "low") && (
               <>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.green, marginBottom: 6, letterSpacing: 0.5 }}>🟢 참고 조건</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.green, marginBottom: 6, letterSpacing: 0.5 }}>🟢 참고 조건 (Low · 2점)</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
                   {sortedResults.filter((r) => r.priority === "low").map((r, i) => (
                     <ConditionCard key={"l" + i} r={r} C={C} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {sortedResults.some((r) => r.priority === "bonus") && (
+              <>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 6, letterSpacing: 0.5 }}>⚪ 보너스 조건 (Bonus · 1점)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                  {sortedResults.filter((r) => r.priority === "bonus").map((r, i) => (
+                    <ConditionCard key={"b" + i} r={r} C={C} />
                   ))}
                 </div>
               </>
