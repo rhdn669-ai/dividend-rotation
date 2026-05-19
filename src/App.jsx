@@ -71,7 +71,7 @@ async function fetchQuote(ticker) {
       ticker, ok: true,
       price: meta.regularMarketPrice,
       prevClose,
-      changePct: ((meta.regularMarketPrice - prevClose) / prevClose) * 100,
+      changePct: meta.regularMarketChangePercent ?? ((meta.regularMarketPrice - prevClose) / prevClose) * 100,
       marketState: meta.marketState,
       preMarketPrice: meta.preMarketPrice,
       preMarketChange: meta.preMarketPrice ? ((meta.preMarketPrice - meta.regularMarketPrice) / meta.regularMarketPrice) * 100 : null,
