@@ -428,6 +428,7 @@ export default function App() {
     { id: "guide", label: "📖 가이드" },
     { id: "glossary", label: "📚 용어" },
     { id: "history", label: "📈 기록" },
+    { id: "timezone", label: "🕐 시간대" },
   ];
 
   const C = {
@@ -828,7 +829,58 @@ export default function App() {
           </div>
         )}
         {/* ── 기록 탭 ── */}
-        {tab === "history" && (
+        {tab === "timezone" && (
+        <div style={{ padding: "0 2px" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 14 }}>시간대 안내</div>
+
+          <div style={{ background: `${marketStatus.color}18`, border: `1.5px solid ${marketStatus.color}55`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>현재 미국 동부 시간 (ET)</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: 0.5 }}>{marketStatus.etStr}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>장 상태</div>
+              <span style={{ background: `${marketStatus.color}25`, color: marketStatus.color, borderRadius: 6, padding: "4px 14px", fontSize: 14, fontWeight: 700 }}>{marketStatus.label}</span>
+            </div>
+          </div>
+
+          {[
+            { label: "프리마켓", color: "#f59e0b", et: "04:00 – 09:30", summer: "17:00 – 22:30", winter: "18:00 – 23:30", desc: "사전 거래. 유동성 낙고 스프레드 큼." },
+            { label: "정규장",   color: "#22c55e", et: "09:30 – 16:00", summer: "22:30 – 05:00", winter: "23:30 – 06:00", desc: "메인 거래 시간. 유동성 최대, 가장 정확한 가격." },
+            { label: "시간외",   color: "#f97316", et: "16:00 – 20:00", summer: "05:00 – 09:00", winter: "06:00 – 10:00", desc: "실적 발표 등 이벤트 반응. 유동성 낙음." },
+            { label: "마감",     color: "#94a3b8", et: "20:00 – 04:00", summer: "09:00 – 17:00", winter: "10:00 – 18:00", desc: "거래 불가. 주말 포함." },
+          ].map(row => (
+            <div key={row.label} style={{ background: C.card, borderRadius: 10, padding: "12px 14px", marginBottom: 10, borderLeft: `4px solid ${row.color}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ background: `${row.color}25`, color: row.color, borderRadius: 5, padding: "2px 10px", fontSize: 12, fontWeight: 700 }}>{row.label}</span>
+                <span style={{ fontSize: 10, color: C.muted }}>ET {row.et}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 7 }}>
+                <div style={{ background: C.bg, borderRadius: 7, padding: "7px 10px" }}>
+                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>🌞 여름 (EDT, 3월말‑3월)</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>KST {row.summer}</div>
+                </div>
+                <div style={{ background: C.bg, borderRadius: 7, padding: "7px 10px" }}>
+                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>❄️ 겨울 (EST, 11월‑3월)</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>KST {row.winter}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 10, color: C.muted }}>{row.desc}</div>
+            </div>
+          ))}
+
+          <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "12px 14px", marginTop: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#93c5fd", marginBottom: 6 }}>ℹ️ 서머타임 자동 적용</div>
+            <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
+              이 앱은 <span style={{ color: "#93c5fd", fontWeight: 600 }}>America/New_York</span> 타임존을 사용하여 서머타임을 자동으로 반영합니다.<br/>
+              · 여름 (EDT, UTC-4): 3월 둘째 일요일 → 11월 첫째 일요일<br/>
+              · 겨울 (EST, UTC-5): 11월 첫째 일요일 → 3월 둘째 일요일
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "history" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 13 }}>
               <div>
