@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.19";
+const APP_VERSION = "1.0.20";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -1304,9 +1304,53 @@ export default function App() {
         const avgAbsError = absErrors.length ? absErrors.reduce((a, b) => a + b, 0) / absErrors.length : null;
         const hitRate = matched.length ? (absErrors.filter(e => e <= 20).length / matched.length) * 100 : null;
         const usdkrw = quotes["KRW=X"]?.price;
+        // 진입점수 vs 실제수익 검증 데이터
+        const validated = matched.filter(s => s.netReturnPct != null && s.entryPct != null);
+        const buckets = [
+          { range: "90~100%", min: 90, max: 101, label: "S/A+/A" },
+          { range: "80~89%", min: 80, max: 90, label: "B+" },
+          { range: "70~79%", min: 70, max: 80, label: "B" },
+          { range: "60~69%", min: 60, max: 70, label: "C+" },
+          { range: "<60%", min: 0, max: 60, label: "C/D/F" },
+        ].map(b => {
+          const items = validated.filter(s => s.entryPct >= b.min && s.entryPct < b.max);
+          const avgReturn = items.length ? items.reduce((a, s) => a + s.netReturnPct, 0) / items.length : null;
+          const winRate = items.length ? (items.filter(s => s.profitable).length / items.length) * 100 : null;
+          return { ...b, count: items.length, avgReturn, winRate };
+        });
         return (
           <div style={{ padding: "0 2px" }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>🎯 예측 정확도 이력</div>
+
+            {/* 진입 검증 분석 */}
+            {validated.length > 0 && (
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 0.3 }}>📈 진입점수 vs 실제수익 (검증: {validated.length}건)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {buckets.map(b => {
+                    const retColor = b.avgReturn == null ? C.muted : b.avgReturn > 0.5 ? C.green : b.avgReturn > -0.5 ? C.amber : C.red;
+                    return (
+                      <div key={b.range} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 9px", background: C.bg, borderRadius: 7 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.text, minWidth: 70 }}>{b.range}</span>
+                        <span style={{ fontSize: 9, color: C.muted, minWidth: 50 }}>{b.label}</span>
+                        <span style={{ fontSize: 10, color: C.muted, minWidth: 36 }}>{b.count}건</span>
+                        {b.count > 0 ? (
+                          <>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: retColor, minWidth: 50, textAlign: "right" }}>{b.avgReturn > 0 ? "+" : ""}{b.avgReturn.toFixed(2)}%</span>
+                            <span style={{ fontSize: 10, color: b.winRate >= 70 ? C.green : b.winRate >= 50 ? C.amber : C.red, minWidth: 50, textAlign: "right" }}>승률 {b.winRate.toFixed(0)}%</span>
+                          </>
+                        ) : <span style={{ fontSize: 10, color: C.muted, flex: 1, textAlign: "right" }}>데이터 없음</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 9, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+                  · 순수익 = (실제배당 + 배당락후가격 - 진입가) / 진입가 × 100<br/>
+                  · 높은 진입점수일수록 양의 평균 수익이면 점수 시스템이 유효함을 의미
+                </div>
+              </div>
+            )}
+
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 0.3 }}>전체 통계</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1341,7 +1385,7 @@ export default function App() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.tk} <span style={{ fontSize: 10, color: C.muted, fontWeight: 400 }}>· 배당락 {s.exDivDate}</span></div>
-                      <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>HV20: {s.hv20?.toFixed(1)}% · VIX: {s.vix?.toFixed(2)} · ETF ${s.etfPrice?.toFixed(2)}</div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>HV20: {s.hv20?.toFixed(1)}% · VIX: {s.vix?.toFixed(2)} · 진입가 ${s.etfPrice?.toFixed(2)} {s.entryPct != null && `· 점수 ${s.entryPct}% (${s.entryGrade})`}</div>
                     </div>
                     {isPending ? (
                       <span style={{ background: "#e2e8f0", color: "#475569", borderRadius: 5, padding: "2px 8px", fontSize: 9, fontWeight: 700 }}>대기중</span>
@@ -1361,6 +1405,12 @@ export default function App() {
                       {!isPending && usdkrw && <div style={{ fontSize: 10, color: "#166534" }}>₩{Math.round(s.actual * usdkrw).toLocaleString()}</div>}
                     </div>
                   </div>
+                  {s.netReturnPct != null && (
+                    <div style={{ marginTop: 6, padding: "6px 10px", background: s.profitable ? "#dcfce7" : "#fee2e2", borderRadius: 7, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: s.profitable ? "#166534" : "#991b1b" }}>💰 진입 후 순수익</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: s.profitable ? "#15803d" : "#b91c1c" }}>{s.netReturnPct > 0 ? "+" : ""}{s.netReturnPct.toFixed(2)}%</span>
+                    </div>
+                  )}
                 </div>
               );
             })}
