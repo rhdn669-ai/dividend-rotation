@@ -58,6 +58,8 @@ async function fetchQuote(ticker) {
     const rawQ = data?.chart?.result?.[0]?.indicators?.quote?.[0];
     if (!meta) throw new Error("no meta");
     const closes = rawQ?.close?.filter((v) => v != null) || [];
+    // closes[-1] = 오늘 현재가, closes[-2] = 전일 종가 (배당 미조정 실제값)
+    const prevCloseFromArray = closes.length >= 2 ? closes[closes.length - 2] : null;
     const fiveDayReturn = closes.length >= 6
       ? ((closes[closes.length - 1] - closes[closes.length - 6]) / closes[closes.length - 6]) * 100
       : null;
@@ -66,14 +68,12 @@ async function fetchQuote(ticker) {
     const avgVol20 = recentVols.length > 0 ? recentVols.reduce((a, b) => a + b, 0) / recentVols.length : null;
     const todayVol = meta.regularMarketVolume || volumes[volumes.length - 1] || null;
     const volRatio = avgVol20 && todayVol ? todayVol / avgVol20 : null;
-    const prevClose = meta.previousClose ?? null;
+    const prevClose = prevCloseFromArray;
     return {
       ticker, ok: true,
       price: meta.regularMarketPrice,
       prevClose,
-      changePct: meta.regularMarketChangePercent != null
-        ? meta.regularMarketChangePercent
-        : (prevClose ? ((meta.regularMarketPrice - prevClose) / prevClose) * 100 : 0),
+      changePct: prevClose ? ((meta.regularMarketPrice - prevClose) / prevClose) * 100 : 0,
       marketState: meta.marketState,
       preMarketPrice: meta.preMarketPrice,
       preMarketChange: meta.preMarketPrice ? ((meta.preMarketPrice - meta.regularMarketPrice) / meta.regularMarketPrice) * 100 : null,
