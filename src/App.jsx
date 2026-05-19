@@ -830,7 +830,14 @@ export default function App() {
                     <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 13px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                         <div style={{ fontSize: 10, color: C.muted }}>{timeStr}</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: topColor }}>🥇 {top[0]} {top[1]}%</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: topColor }}>🥇 {top[0]} {top[1]}%</div>
+                          <button onClick={() => setScoreHistory(prev => {
+                            const updated = prev.filter((_, idx) => idx !== i);
+                            storage.set(STORAGE_KEYS.scoreHistory, updated);
+                            return updated;
+                          })} style={{ background: "none", border: "none", color: C.muted, fontSize: 14, cursor: "pointer", padding: "0 2px", lineHeight: 1 }}>✕</button>
+                        </div>
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
                         {ranked.map(([tk, pct], j) => {
