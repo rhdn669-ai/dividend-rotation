@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.15";
+const APP_VERSION = "1.0.16";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -387,6 +387,13 @@ export default function App() {
   const [rotationLog, setRotationLog] = useState(() => storage.get(STORAGE_KEYS.log, []));
   const [manualVix, setManualVix] = useState(() => storage.get(STORAGE_KEYS.vix, ""));
   const [scoreHistory, setScoreHistory] = useState(() => storage.get(STORAGE_KEYS.scoreHistory, []));
+  const [predictionLog, setPredictionLog] = useState(null);
+  useEffect(() => {
+    fetch(`/predictions.json?t=${Date.now()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setPredictionLog(d || { snapshots: [], updatedAt: null }))
+      .catch(() => setPredictionLog({ snapshots: [], updatedAt: null }));
+  }, []);
   const [marketTime, setMarketTime] = useState(() => new Date());
   const [tab, setTab] = useState("signal");
   const [showEventModal, setShowEventModal] = useState(false);
@@ -495,6 +502,7 @@ export default function App() {
     { id: "history", label: "📈 기록" },
     { id: "timezone", label: "🕐 시간대" },
     { id: "dividend", label: "💰 배당순위" },
+    { id: "predictlog", label: "🎯 예측이력" },
   ];
 
   const C = {
@@ -1063,6 +1071,90 @@ export default function App() {
                 · <strong style={{color:"#cbd5e1"}}>📊 직전 배당금</strong>: Yahoo Finance 최근 1회 실제 지급액<br/>
                 · 공식: ETF가격 × HV × √(7/365) × 0.4 × {ETF_CAPTURE} (캡처율)<br/>
                 · 순위는 HV 기반 예상 수익률 기준
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+            {tab === "predictlog" && (() => {
+        if (!predictionLog) return <div style={{ textAlign: "center", padding: 40, color: C.muted }}>불러오는 중...</div>;
+        const snaps = [...(predictionLog.snapshots || [])].sort((a, b) => b.exDivDate.localeCompare(a.exDivDate));
+        const matched = snaps.filter(s => s.actual != null);
+        const pending = snaps.filter(s => s.actual == null);
+        const errors = matched.map(s => s.errorPct).filter(e => e != null);
+        const absErrors = errors.map(Math.abs);
+        const avgError = errors.length ? errors.reduce((a, b) => a + b, 0) / errors.length : null;
+        const avgAbsError = absErrors.length ? absErrors.reduce((a, b) => a + b, 0) / absErrors.length : null;
+        const hitRate = matched.length ? (absErrors.filter(e => e <= 20).length / matched.length) * 100 : null;
+        const usdkrw = quotes["KRW=X"]?.price;
+        return (
+          <div style={{ padding: "0 2px" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>🎯 예측 정확도 이력</div>
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 10, letterSpacing: 0.3 }}>전체 통계</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px" }}>
+                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>총 스냅샷</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{snaps.length}회</div>
+                  <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>매칭 {matched.length} · 대기 {pending.length}</div>
+                </div>
+                <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px" }}>
+                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>평균 절대오차</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: avgAbsError != null && avgAbsError <= 15 ? C.green : avgAbsError != null && avgAbsError <= 30 ? C.amber : C.red }}>{avgAbsError != null ? `±${avgAbsError.toFixed(1)}%` : "-"}</div>
+                  <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>편향 {avgError != null ? `${avgError > 0 ? "+" : ""}${avgError.toFixed(1)}%` : "-"}</div>
+                </div>
+                <div style={{ background: C.bg, borderRadius: 8, padding: "9px 12px", gridColumn: "span 2" }}>
+                  <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>적중률 (±20% 이내)</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: hitRate != null && hitRate >= 70 ? C.green : hitRate != null && hitRate >= 50 ? C.amber : C.red }}>{hitRate != null ? hitRate.toFixed(0) + "%" : "-"}</div>
+                </div>
+              </div>
+            </div>
+            {snaps.length === 0 && (
+              <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 12 }}>
+                아직 수집된 스냅샷이 없습니다.<br/><br/>
+                매주 수요일/금요일 KST 04:30에 자동 캡처됩니다.<br/>(수: NVDY/AMDY/TSMY · 금: AMDW/PLTW)
+              </div>
+            )}
+            {snaps.map((s, i) => {
+              const isPending = s.actual == null;
+              const errAbs = s.errorPct != null ? Math.abs(s.errorPct) : null;
+              const accColor = errAbs == null ? C.muted : errAbs <= 10 ? C.green : errAbs <= 25 ? C.amber : C.red;
+              return (
+                <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderLeft: `4px solid ${isPending ? C.muted : accColor}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.tk} <span style={{ fontSize: 10, color: C.muted, fontWeight: 400 }}>· 배당락 {s.exDivDate}</span></div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>HV20: {s.hv20?.toFixed(1)}% · VIX: {s.vix?.toFixed(2)} · ETF ${s.etfPrice?.toFixed(2)}</div>
+                    </div>
+                    {isPending ? (
+                      <span style={{ background: "#e2e8f0", color: "#475569", borderRadius: 5, padding: "2px 8px", fontSize: 9, fontWeight: 700 }}>대기중</span>
+                    ) : (
+                      <span style={{ background: `${accColor}25`, color: accColor, borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 800 }}>{s.errorPct > 0 ? "+" : ""}{s.errorPct?.toFixed(1)}%</span>
+                    )}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    <div style={{ background: "#f0f9ff", borderRadius: 7, padding: "7px 10px", border: "1px solid #bae6fd" }}>
+                      <div style={{ fontSize: 9, color: "#0c4a6e", fontWeight: 600, marginBottom: 2 }}>🎯 예상</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#075985" }}>${s.predicted?.toFixed(4)}</div>
+                      {usdkrw && <div style={{ fontSize: 10, color: "#0c4a6e" }}>₩{Math.round(s.predicted * usdkrw).toLocaleString()}</div>}
+                    </div>
+                    <div style={{ background: isPending ? C.bg : "#f0fdf4", borderRadius: 7, padding: "7px 10px", border: `1px solid ${isPending ? C.border : "#bbf7d0"}` }}>
+                      <div style={{ fontSize: 9, color: isPending ? C.muted : "#166534", fontWeight: 600, marginBottom: 2 }}>📊 실제</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: isPending ? C.muted : "#15803d" }}>{isPending ? "대기중" : `$${s.actual?.toFixed(4)}`}</div>
+                      {!isPending && usdkrw && <div style={{ fontSize: 10, color: "#166534" }}>₩{Math.round(s.actual * usdkrw).toLocaleString()}</div>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "12px 14px", marginTop: 10 }}>
+              <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 자동 캡처 안내</div>
+              <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
+                · GitHub Actions가 매일 KST 04:30에 자동 실행<br/>
+                · 수: NVDY/AMDY/TSMY · 금: AMDW/PLTW 예측 캡처<br/>
+                · 배당 지급 후 자동 매칭<br/>
+                · {predictionLog.updatedAt ? `업데이트: ${new Date(predictionLog.updatedAt).toLocaleString("ko-KR")}` : "초기 상태"}
               </div>
             </div>
           </div>
