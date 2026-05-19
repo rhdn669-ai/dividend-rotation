@@ -56,6 +56,10 @@ async function fetchQuote(ticker) {
     const meta = data?.chart?.result?.[0]?.meta;
     const rawQ = data?.chart?.result?.[0]?.indicators?.quote?.[0];
     if (!meta) throw new Error("no meta");
+    const closes = rawQ?.close?.filter((v) => v != null) || [];
+    const fiveDayReturn = closes.length >= 6
+      ? ((closes[closes.length - 1] - closes[closes.length - 6]) / closes[closes.length - 6]) * 100
+      : null;
     const volumes = rawQ?.volume?.filter((v) => v != null) || [];
     const recentVols = volumes.slice(-21, -1);
     const avgVol20 = recentVols.length > 0 ? recentVols.reduce((a, b) => a + b, 0) / recentVols.length : null;
@@ -71,6 +75,7 @@ async function fetchQuote(ticker) {
       preMarketPrice: meta.preMarketPrice,
       preMarketChange: meta.preMarketPrice ? ((meta.preMarketPrice - meta.regularMarketPrice) / meta.regularMarketPrice) * 100 : null,
       todayVol, avgVol20, volRatio,
+      fiveDayReturn,
       timestamp: new Date(),
     };
   } catch (e) {
@@ -219,6 +224,44 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     total++; if (ok) score++;
   }
 
+  // ③ 기준 종목 5일 모멘텀
+  if (baseQ?.ok && baseQ.fiveDayReturn != null) {
+    const ok = baseQ.fiveDayReturn > -3;
+    const tag = baseQ.fiveDayReturn > 5 ? " 강세" : baseQ.fiveDayReturn > 0 ? " 양호" : baseQ.fiveDayReturn > -3 ? " 약세" : " 급락";
+    results.push({
+      label: `${baseName} 5일 모멘텀`,
+      ok,
+      detail: `최근 5거래일 ${baseQ.fiveDayReturn > 0 ? "+" : ""}${baseQ.fiveDayReturn.toFixed(2)}%${tag}`,
+      priority: "mid",
+    });
+    total++; if (ok) score++;
+  }
+
+  // ④ ETF 프리미엄 수령 활성도
+  if (tq?.ok && tq.volRatio != null) {
+    const ok = tq.volRatio >= 0.7;
+    results.push({
+      label: `${targetTicker} 프리미엄 수령 활성도`,
+      ok,
+      detail: `거래량 평균 대비 ${tq.volRatio.toFixed(2)}배${ok ? " — 수령 원활" : " — 유동성 부족 주의"}`,
+      priority: "mid",
+    });
+    total++; if (ok) score++;
+  }
+
+  // ⑤ VIX 프리미엄 최적 구간 (15~25)
+  if (vixVal != null && !isNaN(vixVal)) {
+    const ok = vixVal >= 15 && vixVal <= 25;
+    const tag = vixVal < 15 ? " 프리미엄 낮음 주의" : vixVal <= 25 ? " 프리미엄 최적" : " 고프리미엄·고위험";
+    results.push({
+      label: "VIX 프리미엄 최적 구간 (15~25)",
+      ok,
+      detail: `VIX ${vixVal.toFixed(2)}${tag}`,
+      priority: "mid",
+    });
+    total++; if (ok) score++;
+  }
+
   // 9. 배당락 D-day
   const nextDiv = events
     .filter((e) => e.type === "DIVIDEND" && e.date >= todayStr && (!targetTicker || e.label.includes(targetTicker) || !e.label.match(/NVDY|AMDW/)))
@@ -307,6 +350,12 @@ export default function App() {
     [events, todayStr]
   );
   const logStats = useMemo(() => calcLogStats(rotationLog), [rotationLog]);
+  const allEvaluations = useMemo(
+    () => ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"].map(tk => ({
+      ticker: tk, ...evaluateConditions(quotes, tk, events, manualVix),
+    })),
+    [quotes, events, manualVix]
+  );
 
   const fmtTime = (d) => d ? d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "-";
   const fmtDate = (s) => { const d = new Date(s); return `${d.getMonth() + 1}/${d.getDate()}`; };
@@ -394,7 +443,25 @@ export default function App() {
               </div>
             </div>
 
-            {/* 신호 카드 */}
+            {/* 전체 비교 */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 7, letterSpacing: 0.3 }}>전체 비교 — 클릭하면 상세 확인</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {[...allEvaluations].sort((a, b) => b.pct - a.pct).map((ev) => (
+                  <div key={ev.ticker} onClick={() => setActiveTicker(ev.ticker)}
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: activeTicker === ev.ticker ? `${ev.signalColor}12` : C.card, border: `1px solid ${activeTicker === ev.ticker ? ev.signalColor + "60" : C.border}`, borderRadius: 10, padding: "8px 12px", cursor: "pointer", transition: "all 0.15s" }}>
+                    <span style={{ fontWeight: 800, fontSize: 12, color: activeTicker === ev.ticker ? ev.signalColor : C.text, minWidth: 36 }}>{ev.ticker}</span>
+                    <div style={{ flex: 1, height: 5, background: C.border, borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", borderRadius: 99, background: ev.signalColor, width: `${ev.pct}%`, transition: "width 0.5s ease" }} />
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: ev.signalColor, minWidth: 32, textAlign: "right" }}>{ev.pct}%</span>
+                    <span style={{ fontSize: 10, color: ev.signalColor, minWidth: 52 }}>{ev.signal}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+                        {/* 신호 카드 */}
             <div style={{ background: C.card, border: `2px solid ${evaluation.signalColor}40`, borderRadius: 16, padding: "18px", marginBottom: 14, textAlign: "center", boxShadow: `0 4px 20px ${evaluation.signalColor}15` }}>
               <div style={{ fontSize: 30, fontWeight: 800, color: evaluation.signalColor }}>{evaluation.signal}</div>
               <div style={{ fontSize: 12, color: C.sub, marginTop: 4 }}>{activeTicker} 진입 조건 {evaluation.score}/{evaluation.total} 충족</div>
