@@ -867,27 +867,47 @@ export default function App() {
               {tab === "dividend" && (() => {
         const ETF_TICKERS = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"];
         const isW = (tk) => ["AMDW", "PLTW"].includes(tk);
+        // VIX 반영 조정 계수 (기준 VIX=18, 0.4~2.5배 제한)
+        const vixNow = quotes["^VIX"]?.price ?? (manualVix ? parseFloat(manualVix) : 18);
+        const BASE_VIX = 18;
+        const vixAdj = Math.min(2.5, Math.max(0.4, vixNow / BASE_VIX));
         const ranked = ETF_TICKERS
           .map(tk => {
             const q = quotes[tk];
             const divWeekday = isW(tk) ? 1 : 4;
             const todayDow = new Date().getDay();
             const daysToDiv = (divWeekday - todayDow + 7) % 7 || 7;
-            const annualDiv = q?.lastDiv ? q.lastDiv * 52 : null;
-            const yieldPct = annualDiv && q?.price ? (annualDiv / q.price) * 100 : null;
-            return { tk, q, daysToDiv, annualDiv, yieldPct };
+            const estDiv = q?.lastDiv ? q.lastDiv * vixAdj : null;
+            const estAnnual = estDiv ? estDiv * 52 : null;
+            const estYield = estAnnual && q?.price ? (estAnnual / q.price) * 100 : null;
+            const histAnnual = q?.lastDiv ? q.lastDiv * 52 : null;
+            const histYield = histAnnual && q?.price ? (histAnnual / q.price) * 100 : null;
+            return { tk, q, daysToDiv, estDiv, estAnnual, estYield, histAnnual, histYield };
           })
-          .sort((a, b) => (b.yieldPct ?? -1) - (a.yieldPct ?? -1));
+          .sort((a, b) => (b.estYield ?? -1) - (a.estYield ?? -1));
 
         const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
+        const vixLabel = vixNow >= 25 ? "고변동 — 프리미엄 높음" : vixNow >= 15 ? "정상 — 프리미엄 적정" : "저변동 — 프리미엄 낮음";
+        const vixColor = vixNow >= 25 ? "#22c55e" : vixNow >= 15 ? "#f59e0b" : "#94a3b8";
         return (
           <div style={{ padding: "0 2px" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>예상 배당 순위</div>
-            <div style={{ fontSize: 10, color: C.muted, marginBottom: 14 }}>최근 1회 지급액 기준 · 주배당(×52) 연환산</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>예상 배당 순위</div>
 
-            {ranked.map(({ tk, q, daysToDiv, annualDiv, yieldPct }, i) => {
+            {/* VIX 현재 상태 */}
+            <div style={{ background: `${vixColor}18`, border: `1.5px solid ${vixColor}55`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>현재 VIX (기준 18)</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{vixNow.toFixed(2)}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: vixColor }}>{vixLabel}</div>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>조정계수 ×{vixAdj.toFixed(2)}</div>
+              </div>
+            </div>
+
+            {ranked.map(({ tk, q, daysToDiv, estDiv, estAnnual, estYield, histAnnual, histYield }, i) => {
               if (!q?.ok) return null;
-              const divColor = yieldPct >= 60 ? "#22c55e" : yieldPct >= 40 ? "#f59e0b" : "#94a3b8";
+              const yieldColor = estYield >= 60 ? "#22c55e" : estYield >= 40 ? "#f59e0b" : "#94a3b8";
               return (
                 <div key={tk} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
@@ -895,32 +915,30 @@ export default function App() {
                       <span style={{ fontSize: 18 }}>{medals[i]}</span>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{tk}</div>
-                        <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{isW(tk) ? "Roundhill 월요일" : "YieldMax 목요일"} · 주배당</div>
+                        <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{isW(tk) ? "Roundhill 월요일" : "YieldMax 목요일"}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: divColor }}>{yieldPct ? yieldPct.toFixed(1) + "%" : "-"}</div>
-                      <div style={{ fontSize: 10, color: C.muted }}>연환산 수익률</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: yieldColor }}>{estYield ? estYield.toFixed(1) + "%" : "-"}</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>VIX반영 연환산</div>
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                    <div style={{ background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
-                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>최근 배당 (1회)</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{q.lastDiv ? `$${q.lastDiv.toFixed(4)}` : "-"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
+                    <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "8px 10px", border: "1px solid #bbf7d0" }}>
+                      <div style={{ fontSize: 9, color: "#166534", marginBottom: 2, fontWeight: 600 }}>VIX 반영 예상 (1회)</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "#15803d" }}>{estDiv ? `$${estDiv.toFixed(4)}` : "-"}</div>
+                      <div style={{ fontSize: 9, color: "#166534" }}>연 {estAnnual ? `$${estAnnual.toFixed(2)}` : "-"}</div>
                     </div>
                     <div style={{ background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
-                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>연환산 배당</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{annualDiv ? `$${annualDiv.toFixed(2)}` : "-"}</div>
-                    </div>
-                    <div style={{ background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
-                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>다음 배당락</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: daysToDiv <= 3 ? "#f59e0b" : C.text }}>D-{daysToDiv}</div>
+                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>최근 실제 배당 (1회)</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{q.lastDiv ? `$${q.lastDiv.toFixed(4)}` : "-"}</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>연 {histAnnual ? `$${histAnnual.toFixed(2)}` : "-"} ({histYield ? histYield.toFixed(1) + "%" : "-"})</div>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontSize: 10, color: C.muted }}>현재가 ${q.price?.toFixed(2)} · 최근 배당락 {q.lastDivDate ?? "-"}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: 10, color: C.muted }}>현재가 ${q.price?.toFixed(2)} · 배당락 {q.lastDivDate ?? "-"} · D-{daysToDiv}</div>
                     <div style={{ fontSize: 10, color: q.changePct >= 0 ? C.green : C.red, fontWeight: 600 }}>
                       {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
                     </div>
@@ -930,11 +948,11 @@ export default function App() {
             })}
 
             <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "11px 14px", marginTop: 4 }}>
-              <div style={{ fontSize: 10, color: "#93c5fd", fontWeight: 700, marginBottom: 4 }}>ℹ️ 주의사항</div>
+              <div style={{ fontSize: 10, color: "#93c5fd", fontWeight: 700, marginBottom: 4 }}>ℹ️ 계산 방식</div>
               <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
-                · 배당금은 매주 옵션 프리미엄에 따라 변동됩니다<br/>
-                · VIX 높을수록 프리미엄 커져 배당 증가<br/>
-                · 연환산은 최근 1회 × 52 단순 추정값입니다
+                · VIX 반영 예상 = 최근 배당 × (현재VIX ÷ 기준VIX 18)<br/>
+                · 실제 배당은 기초종목(NVDA/AMD 등) 개별 IV 기준이므로 차이 있음<br/>
+                · 조정계수 범위: 0.4~2.5배 제한
               </div>
             </div>
           </div>
