@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.18";
+const APP_VERSION = "1.0.19";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
@@ -395,16 +395,111 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     passed.filter(r => r.priority === "high").slice(0, 2).forEach(r => pros.push(`✅ ${r.label}`));
   }
 
-  let summary;
-  if (criticalFails >= 2) summary = `핵심 조건 ${criticalFails}개 실패 — 진입 절대 금지`;
-  else if (criticalFails === 1) summary = `${failedCriticalLabels[0]} 위반 — 결과 확인 후 다음 회 대기`;
-  else if (pct >= 95) summary = "거의 완벽한 진입 타이밍";
-  else if (pct >= 85) summary = "주요 조건 충족, 진입 양호";
-  else if (pct >= 80) summary = "기본 조건 통과, 진입 가능";
-  else if (pct >= 60) summary = "일부 조건 부족, 신중히 결정";
-  else summary = "다수 조건 불충족, 진입 비추천";
+  // 자연어 코멘트 생성 (3단 구조: 판단 → 근거 → 조언)
+  const failedCriticalConds = failed.filter(r => r.priority === "critical");
+  const failedHighConds = failed.filter(r => r.priority === "high");
+  const passedCriticalCnt = passed.filter(r => r.priority === "critical").length;
+  const baseStock = ({ NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" })[targetTicker] || "기초종목";
 
-  return { results, score: wScore, total: wMax, pct, signal, signalColor, failedCritical, criticalVeto, grade, summary, pros: pros.slice(0, 3), cons: cons.slice(0, 3) };
+  // ① 도입부 — 전체 판단
+  let intro;
+  if (criticalFails >= 2) {
+    intro = `핵심 리스크 조건이 ${criticalFails}개 동시에 위반되어 진입은 절대 권장되지 않습니다.`;
+  } else if (criticalFails === 1) {
+    const c = failedCriticalConds[0];
+    if (c.label.includes("CPI") || c.label.includes("FOMC")) {
+      intro = "주요 매크로 이벤트(CPI 또는 FOMC)가 임박해 있어 진입은 위험합니다.";
+    } else if (c.label.includes("실적")) {
+      intro = `${baseStock} 실적 발표가 1~2일 내 임박해 있어 진입은 권장되지 않습니다.`;
+    } else if (c.label.includes("VIX")) {
+      intro = "VIX 지수가 적정 구간(15~30)을 벗어나 있어 진입은 신중해야 합니다.";
+    } else {
+      intro = "핵심 조건 1개가 충족되지 않아 진입은 신중해야 합니다.";
+    }
+  } else if (pct >= 95) {
+    intro = "모든 주요 리스크 요인이 해소되었고 부수 지표도 거의 전부 충족되어 최적의 진입 타이밍입니다.";
+  } else if (pct >= 85) {
+    intro = "이벤트 리스크와 변동성 환경이 양호하여 진입에 적합한 상태입니다.";
+  } else if (pct >= 80) {
+    intro = "기본적인 진입 조건은 통과했으나 일부 보조 지표가 약합니다.";
+  } else if (pct >= 60) {
+    intro = "시장 환경에 일부 약점이 있어 진입에 신중한 판단이 필요합니다.";
+  } else {
+    intro = "다수의 조건이 충족되지 않아 현 시점 진입은 권장되지 않습니다.";
+  }
+
+  // ② 근거 — 구체적 이유 나열
+  const reasons = [];
+  failedCriticalConds.forEach(c => {
+    if (c.label.includes("CPI") || c.label.includes("FOMC")) {
+      reasons.push("매크로 이벤트는 시장 전체를 ±2~5% 흔들 수 있어 ETF 가격이 크게 변동할 가능성이 높습니다");
+    } else if (c.label.includes("실적")) {
+      reasons.push(`${baseStock} 실적 발표 후 ±10~15% 갭이 흔하고, IV 크러시로 다음 회 배당금이 평소의 50~70% 수준으로 감소할 수 있습니다`);
+    } else if (c.label.includes("VIX")) {
+      const vixMatch = c.detail.match(/VIX\s*([\d.]+)/);
+      const vixVal = vixMatch ? parseFloat(vixMatch[1]) : null;
+      if (vixVal && vixVal >= 30) {
+        reasons.push(`현재 VIX ${vixVal.toFixed(1)}로 극도공포 구간에 진입했으며, 시장 추가 하락 시 ETF 가격도 함께 떨어질 위험이 큽니다`);
+      } else if (vixVal && vixVal < 15) {
+        reasons.push(`현재 VIX ${vixVal.toFixed(1)}로 너무 안정적이라 옵션 프리미엄이 낮아 다음 배당이 평소보다 적을 것으로 예상됩니다`);
+      } else {
+        reasons.push("VIX가 적정 구간을 벗어나 있어 배당원천(옵션 프리미엄)이 비정상적입니다");
+      }
+    }
+  });
+  failedHighConds.forEach(c => {
+    if (c.label.includes("MA20")) {
+      reasons.push(`${baseStock}가 20일 이동평균선 아래에서 거래 중이라 단기 하락 추세 진입 가능성이 있습니다`);
+    } else if (c.label.includes("변동")) {
+      reasons.push(`${baseStock}의 당일 변동성이 평소보다 크게 나타나 매수 타이밍이 불리합니다`);
+    }
+  });
+  // mid 실패 1개만 부가 설명
+  const midFails = failed.filter(r => r.priority === "mid").slice(0, 1);
+  midFails.forEach(c => {
+    if (c.label.includes("RSI")) {
+      const rsiMatch = c.detail.match(/RSI\s*([\d.]+)/);
+      const rsi = rsiMatch ? parseFloat(rsiMatch[1]) : null;
+      if (rsi && rsi > 70) reasons.push(`${baseStock} RSI ${rsi.toFixed(0)}로 과매수 구간이라 단기 조정 가능성이 있습니다`);
+      else if (rsi && rsi < 30) reasons.push(`${baseStock} RSI ${rsi.toFixed(0)}로 과매도 구간이며 반등 가능성도 있으나 추세 확인이 필요합니다`);
+    } else if (c.label.includes("5일 모멘텀")) {
+      reasons.push("최근 5거래일 수익률이 마이너스로 단기 약세 흐름이 이어지고 있습니다");
+    } else if (c.label.includes("QQQ")) {
+      reasons.push("나스닥 시장 전체가 약세를 보이고 있어 개별 ETF도 영향을 받을 수 있습니다");
+    }
+  });
+  // 강점 보강 (critical 통과 + 추세 양호)
+  if (criticalFails === 0 && passedCriticalCnt === 3) {
+    if (pct >= 85) reasons.push("이벤트 리스크는 모두 없고 VIX·변동성도 적정 구간에 위치합니다");
+  }
+
+  // ③ 조언 — 다음 행동
+  let advice;
+  if (criticalFails >= 2) {
+    advice = "즉시 진입은 피하고 이벤트 종료 후 시장 안정을 확인한 뒤 재평가하세요.";
+  } else if (criticalFails === 1) {
+    const c = failedCriticalConds[0];
+    if (c.label.includes("실적")) advice = "실적 발표 결과를 확인하고 다음 배당 사이클에서 재진입을 권장합니다.";
+    else if (c.label.includes("CPI") || c.label.includes("FOMC")) advice = "이벤트 종료 후 시장 방향성을 확인하고 진입을 결정하세요.";
+    else advice = "해당 조건이 해소될 때까지 대기 후 재평가를 권장합니다.";
+  } else if (pct >= 95) {
+    advice = `배당락 D-1 마감 직전 매수 → 배당락일 보유 → 다음 회차 ${targetTicker !== "AMDW" && targetTicker !== "PLTW" ? "월요일" : "수요일"} 회전 전략이 유효합니다.`;
+  } else if (pct >= 85) {
+    advice = "평소 비중으로 D-1 마감 직전 매수 후 배당락일 보유 가능합니다.";
+  } else if (pct >= 80) {
+    advice = "평소 비중의 70~80%로 보수적 진입을 권장합니다.";
+  } else if (pct >= 60) {
+    advice = "추세가 명확해질 때까지 한 주 더 관망하거나 소량 분할 매수 검토를 권장합니다.";
+  } else {
+    advice = "다음 회차에서 환경 개선을 기다린 후 재평가하세요.";
+  }
+
+  const reasonText = reasons.length > 0 ? " " + reasons.map(r => r + ".").join(" ") : "";
+  const summary = intro + reasonText + " " + advice;
+  // 짧은 한줄 요약도 별도 유지
+  const summaryShort = intro;
+
+  return { results, score: wScore, total: wMax, pct, signal, signalColor, failedCritical, criticalVeto, grade, summary, summaryShort, pros: pros.slice(0, 3), cons: cons.slice(0, 3) };
 }
 
 // ─── 통계 계산 (회전이력 탭용) ─────────────────────────────────────────────
@@ -720,9 +815,13 @@ export default function App() {
                 <div style={{ height: "100%", borderRadius: 99, background: evaluation.signalColor, width: `${evaluation.pct}%`, transition: "width 0.5s ease" }} />
               </div>
 
-              {/* 코멘트 박스 */}
-              <div style={{ background: `${evaluation.signalColor}10`, borderRadius: 9, padding: "9px 12px", marginBottom: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: evaluation.signalColor, lineHeight: 1.4 }}>💬 {evaluation.summary}</div>
+              {/* 자연어 평가 코멘트 */}
+              <div style={{ background: `${evaluation.signalColor}10`, borderRadius: 9, padding: "11px 13px", marginBottom: 8, borderLeft: `3px solid ${evaluation.signalColor}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+                  <span style={{ fontSize: 11 }}>💬</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: evaluation.signalColor, letterSpacing: 0.3 }}>진입 평가 코멘트</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: C.text, lineHeight: 1.65 }}>{evaluation.summary}</div>
               </div>
 
               {/* 강점/약점 */}
