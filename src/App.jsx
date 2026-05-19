@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
+const APP_VERSION = "1.0.11";
 const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
 
 // 기본 이벤트 데이터 (Claude Code에서 분리 시 src/data/events.js로 이동)
@@ -494,7 +495,7 @@ export default function App() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 17, fontWeight: 700, color: C.blue }}>📈 배당회전 타이밍</div>
-            <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>NVDY / AMDW Rotation v3</div>
+            <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>NVDY / AMDW Rotation · v{APP_VERSION}</div>
           </div>
           <button onClick={refresh} disabled={loading}
             style={{ background: loading ? C.border : C.blue, border: "none", borderRadius: 8, color: loading ? C.muted : "#fff", padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: loading ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5 }}>
