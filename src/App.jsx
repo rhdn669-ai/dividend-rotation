@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ"];
+const TICKERS = ["NVDY", "AMDW", "AMDY", "TSMY", "PLTW", "NVDA", "AMD", "TSM", "PLTR", "^VIX", "QQQ", "KRW=X", "^IXIC", "^KS11"];
 
 // 기본 이벤트 데이터 (Claude Code에서 분리 시 src/data/events.js로 이동)
 // 출처: federalreserve.gov, bls.gov, 각 사 IR
@@ -511,6 +511,29 @@ export default function App() {
             <span style={{ background: `${marketStatus.color}25`, color: marketStatus.color, borderRadius: 5, padding: "1px 8px", fontSize: 9, fontWeight: 700 }}>{marketStatus.label}</span>
           </div>
         </div>
+        {/* 글로벌 마켓 스트립 */}
+        <div style={{ display: "flex", justifyContent: "space-around", gap: 4, marginTop: 8, padding: "6px 4px", background: "#f8fafc", borderRadius: 7 }}>
+          {[
+            { tk: "KRW=X", label: "환율", fmt: (v) => `₩${v.toFixed(0)}` },
+            { tk: "^IXIC", label: "NASDAQ", fmt: (v) => v.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+            { tk: "^KS11", label: "KOSPI", fmt: (v) => v.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+          ].map(({ tk, label, fmt }) => {
+            const q = quotes[tk];
+            return (
+              <div key={tk} style={{ flex: 1, textAlign: "center", borderRight: tk !== "^KS11" ? "1px solid #e2e8f0" : "none" }}>
+                <div style={{ fontSize: 9, color: "#64748b", fontWeight: 600 }}>{label}</div>
+                {q?.ok ? (
+                  <>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>{fmt(q.price)}</div>
+                    <div style={{ fontSize: 8, color: q.changePct >= 0 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>
+                      {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
+                    </div>
+                  </>
+                ) : <div style={{ fontSize: 10, color: "#94a3b8" }}>-</div>}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* 탭 */}
@@ -642,14 +665,19 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {TICKERS.map((tk) => {
               const q = quotes[tk]; if (!q) return null;
-              const displayName = tk === "^VIX" ? "VIX" : tk;
+              const NAMES = { "^VIX": "VIX", "KRW=X": "환율 USD/KRW", "^IXIC": "NASDAQ", "^KS11": "KOSPI" };
+              const displayName = NAMES[tk] || tk;
+              const isIndex = ["^VIX", "^IXIC", "^KS11", "KRW=X"].includes(tk);
+              const usdkrw = quotes["KRW=X"]?.price;
+              const krwStr = !isIndex && usdkrw && q.price ? ` ≈ ₩${Math.round(q.price * usdkrw).toLocaleString()}` : "";
               return (
                 <div key={tk} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "13px 15px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{displayName}</div>
                     {q.ok ? (
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 17, fontWeight: 700 }}>{tk === "^VIX" ? q.price?.toFixed(2) : `$${q.price?.toFixed(2)}`}</div>
+                        <div style={{ fontSize: 17, fontWeight: 700 }}>{isIndex ? (tk === "KRW=X" ? `₩${q.price?.toFixed(2)}` : q.price?.toLocaleString(undefined, { maximumFractionDigits: 2 })) : `$${q.price?.toFixed(2)}`}</div>
+                        {krwStr && <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{krwStr}</div>}
                         <div style={{ fontSize: 11, fontWeight: 600, marginTop: 1, color: q.changePct >= 0 ? C.green : C.red }}>
                           {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
                         </div>
@@ -936,17 +964,17 @@ export default function App() {
                     <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "8px 10px", border: "1px solid #bbf7d0" }}>
                       <div style={{ fontSize: 9, color: "#166534", marginBottom: 2, fontWeight: 600 }}>VIX 반영 예상 (1회)</div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: "#15803d" }}>{estDiv ? `$${estDiv.toFixed(4)}` : "-"}</div>
-                      <div style={{ fontSize: 9, color: "#166534" }}>연 {estAnnual ? `$${estAnnual.toFixed(2)}` : "-"}</div>
+                      <div style={{ fontSize: 9, color: "#166534" }}>연 {estAnnual ? `$${estAnnual.toFixed(2)}${quotes["KRW=X"]?.price ? ` ≈ ₩${Math.round(estAnnual * quotes["KRW=X"].price).toLocaleString()}` : ""}` : "-"}</div>
                     </div>
                     <div style={{ background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
                       <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>최근 실제 배당 (1회)</div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{q.lastDiv ? `$${q.lastDiv.toFixed(4)}` : "-"}</div>
-                      <div style={{ fontSize: 9, color: C.muted }}>연 {histAnnual ? `$${histAnnual.toFixed(2)}` : "-"} ({histYield ? histYield.toFixed(1) + "%" : "-"})</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>연 {histAnnual ? `$${histAnnual.toFixed(2)}${quotes["KRW=X"]?.price ? ` ≈ ₩${Math.round(histAnnual * quotes["KRW=X"].price).toLocaleString()}` : ""}` : "-"} ({histYield ? histYield.toFixed(1) + "%" : "-"})</div>
                     </div>
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontSize: 10, color: C.muted }}>현재가 ${q.price?.toFixed(2)} · 배당락 {q.lastDivDate ?? "-"} · D-{daysToDiv}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>현재가 ${q.price?.toFixed(2)}{quotes["KRW=X"]?.price ? ` (≈₩${Math.round(q.price * quotes["KRW=X"].price).toLocaleString()})` : ""} · 배당락 {q.lastDivDate ?? "-"} · D-{daysToDiv}</div>
                     <div style={{ fontSize: 10, color: q.changePct >= 0 ? C.green : C.red, fontWeight: 600 }}>
                       {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
                     </div>
