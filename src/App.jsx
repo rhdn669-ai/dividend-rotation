@@ -63,6 +63,18 @@ async function fetchQuote(ticker) {
     const fiveDayReturn = closes.length >= 6
       ? ((closes[closes.length - 1] - closes[closes.length - 6]) / closes[closes.length - 6]) * 100
       : null;
+    const ma20 = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b, 0) / 20 : null;
+    const aboveMA20 = ma20 != null ? meta.regularMarketPrice > ma20 : null;
+    let rsi14 = null;
+    if (closes.length >= 15) {
+      let gains = 0, losses = 0;
+      for (let i = closes.length - 14; i < closes.length; i++) {
+        const diff = closes[i] - closes[i - 1];
+        if (diff > 0) gains += diff; else losses -= diff;
+      }
+      const avgG = gains / 14, avgL = losses / 14;
+      rsi14 = avgL === 0 ? 100 : 100 - (100 / (1 + avgG / avgL));
+    }
     const volumes = rawQ?.volume?.filter((v) => v != null) || [];
     const recentVols = volumes.slice(-21, -1);
     const avgVol20 = recentVols.length > 0 ? recentVols.reduce((a, b) => a + b, 0) / recentVols.length : null;
@@ -78,7 +90,7 @@ async function fetchQuote(ticker) {
       preMarketPrice: meta.preMarketPrice,
       preMarketChange: meta.preMarketPrice ? ((meta.preMarketPrice - meta.regularMarketPrice) / meta.regularMarketPrice) * 100 : null,
       todayVol, avgVol20, volRatio,
-      fiveDayReturn,
+      fiveDayReturn, rsi14, ma20, aboveMA20,
       timestamp: new Date(),
     };
   } catch (e) {
@@ -197,30 +209,30 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     total++; if (ok) score++;
   }
 
-  // 6. VIX
+  // 6. VIX 통합 (프리미엄 적정 + 극도공포 회피)
   const vixQ = quotes["^VIX"];
   const vixVal = vixQ?.ok ? vixQ.price : (manualVix ? parseFloat(manualVix) : null);
   if (vixVal != null && !isNaN(vixVal)) {
-    const ok = vixVal < 20;
-    const tag = vixVal >= 30 ? " ⚠️극도공포" : vixVal >= 20 ? " 주의" : " 안정";
+    const ok = vixVal >= 15 && vixVal < 30;
+    const tag = vixVal >= 30 ? " ⚠️극도공포 회피" : vixVal >= 25 ? " 고변동 주의" : vixVal >= 15 ? " 프리미엄 최적" : " 프리미엄 낮음";
     results.push({
-      label: "VIX 공포지수 20 미만",
+      label: "VIX 15~30 (프리미엄 적정)",
       ok,
       detail: `VIX ${vixVal.toFixed(2)}${!vixQ?.ok ? " (수동)" : ""}${tag}`,
       priority: "high",
     });
     total++; if (ok) score++;
   } else {
-    results.push({ label: "VIX 공포지수 20 미만", ok: false, detail: "수동 입력 필요", priority: "high" });
+    results.push({ label: "VIX 15~30 (프리미엄 적정)", ok: false, detail: "수동 입력 필요", priority: "high" });
     total++;
   }
 
-  // 7. ETF 거래량 (통상적 경험칙)
+  // 7. ETF 거래량 정상 (0.5~2.5배, 조건7+④ 통합)
   if (tq?.ok && tq.volRatio != null) {
-    const ok = tq.volRatio >= 0.5 && tq.volRatio <= 1.8;
+    const ok = tq.volRatio >= 0.5 && tq.volRatio <= 2.5;
     const tag = tq.volRatio > 2.5 ? " ⚠️폭증" : tq.volRatio > 1.8 ? " 증가주의" : tq.volRatio < 0.5 ? " 너무적음" : " 정상";
     results.push({
-      label: `${targetTicker} 거래량 정상 (20일 평균 대비)`,
+      label: `${targetTicker} 거래량 정상 (평균 대비 0.5~2.5배)`,
       ok,
       detail: `오늘 ${fmtVol(tq.todayVol)} / 평균 ${fmtVol(tq.avgVol20)} (${tq.volRatio.toFixed(2)}배)${tag}`,
       priority: "mid",
@@ -253,26 +265,42 @@ function evaluateConditions(quotes, targetTicker, events, manualVix) {
     total++; if (ok) score++;
   }
 
-  // ④ ETF 프리미엄 수령 활성도
-  if (tq?.ok && tq.volRatio != null) {
-    const ok = tq.volRatio >= 0.7;
+
+
+  // RSI (기준 종목 14일 — 과매수/과매도 회피)
+  if (baseQ?.ok && baseQ.rsi14 != null) {
+    const ok = baseQ.rsi14 >= 30 && baseQ.rsi14 <= 70;
+    const tag = baseQ.rsi14 > 70 ? " 과매수 주의" : baseQ.rsi14 < 30 ? " 과매도 (반등 가능)" : " 적정 구간";
     results.push({
-      label: `${targetTicker} 프리미엄 수령 활성도`,
+      label: `${baseName} RSI 30~70`,
       ok,
-      detail: `거래량 평균 대비 ${tq.volRatio.toFixed(2)}배${ok ? " — 수령 원활" : " — 유동성 부족 주의"}`,
+      detail: `RSI ${baseQ.rsi14.toFixed(1)}${tag}`,
       priority: "mid",
     });
     total++; if (ok) score++;
   }
 
-  // ⑤ VIX 프리미엄 최적 구간 (15~25)
-  if (vixVal != null && !isNaN(vixVal)) {
-    const ok = vixVal >= 15 && vixVal <= 25;
-    const tag = vixVal < 15 ? " 프리미엄 낮음 주의" : vixVal <= 25 ? " 프리미엄 최적" : " 고프리미엄·고위험";
+  // MA20 (기준 종목 20일 이평선 위 = 상승 추세)
+  if (baseQ?.ok && baseQ.aboveMA20 != null) {
+    const ok = baseQ.aboveMA20;
+    const diff = baseQ.ma20 ? ((baseQ.price - baseQ.ma20) / baseQ.ma20 * 100) : 0;
     results.push({
-      label: "VIX 프리미엄 최적 구간 (15~25)",
+      label: `${baseName} MA20 위 (상승 추세)`,
       ok,
-      detail: `VIX ${vixVal.toFixed(2)}${tag}`,
+      detail: `현재 $${baseQ.price?.toFixed(2)} / MA20 $${baseQ.ma20?.toFixed(2)} (${diff > 0 ? "+" : ""}${diff.toFixed(1)}%)`,
+      priority: "mid",
+    });
+    total++; if (ok) score++;
+  }
+
+  // ETF 자체 5일 모멘텀
+  if (tq?.ok && tq.fiveDayReturn != null) {
+    const ok = tq.fiveDayReturn > -5;
+    const tag = tq.fiveDayReturn > 3 ? " 강세" : tq.fiveDayReturn > 0 ? " 양호" : tq.fiveDayReturn > -5 ? " 약세" : " 급락";
+    results.push({
+      label: `${targetTicker} 5일 모멘텀`,
+      ok,
+      detail: `최근 5거래일 ${tq.fiveDayReturn > 0 ? "+" : ""}${tq.fiveDayReturn.toFixed(2)}%${tag}`,
       priority: "mid",
     });
     total++; if (ok) score++;
