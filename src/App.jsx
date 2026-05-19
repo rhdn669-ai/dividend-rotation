@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.30";
+const APP_VERSION = "1.0.31";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -1388,9 +1388,9 @@ export default function App() {
               </div>
             </div>
 
-            {ranked.map(({ tk, q, baseQ, daysToDiv, hv, hvDiv, hvAnnual, hvYield, lastDiv, histAnnual, histYield }, i) => {
+            {ranked.map(({ tk, q, baseQ, daysToDiv, hv, hv5, hv20, ivBoost, earningsDays, capture, isCalibrated, hvDiv, hvAnnual, hvYield, lastDiv, histAnnual, histYield }, i) => {
               if (!q?.ok) return null;
-              const yieldColor = hvYield >= 60 ? "#22c55e" : hvYield >= 40 ? "#f59e0b" : "#94a3b8";
+              const yieldColor = hvYield == null ? "#94a3b8" : hvYield >= 60 ? "#22c55e" : hvYield >= 40 ? "#f59e0b" : "#94a3b8";
               return (
                 <div key={tk} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "0", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
                   {/* 카드 헤더 */}
