@@ -9,7 +9,7 @@ export async function onRequestGet({ request }) {
     });
   }
 
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=30d`;
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=60d&events=div`;
 
   try {
     const res = await fetch(yahooUrl, {

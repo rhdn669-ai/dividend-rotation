@@ -63,6 +63,10 @@ async function fetchQuote(ticker) {
     const fiveDayReturn = closes.length >= 6
       ? ((closes[closes.length - 1] - closes[closes.length - 6]) / closes[closes.length - 6]) * 100
       : null;
+    const divEvents = data?.chart?.result?.[0]?.events?.dividends;
+    const divArr = divEvents ? Object.values(divEvents).sort((a, b) => b.date - a.date) : [];
+    const lastDiv = divArr.length > 0 ? divArr[0].amount : null;
+    const lastDivDate = divArr.length > 0 ? new Date(divArr[0].date * 1000).toISOString().slice(0, 10) : null;
     const ma20 = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b, 0) / 20 : null;
     const aboveMA20 = ma20 != null ? meta.regularMarketPrice > ma20 : null;
     let rsi14 = null;
@@ -90,7 +94,7 @@ async function fetchQuote(ticker) {
       preMarketPrice: meta.preMarketPrice,
       preMarketChange: meta.preMarketPrice ? ((meta.preMarketPrice - meta.regularMarketPrice) / meta.regularMarketPrice) * 100 : null,
       todayVol, avgVol20, volRatio,
-      fiveDayReturn, rsi14, ma20, aboveMA20,
+      fiveDayReturn, rsi14, ma20, aboveMA20, lastDiv, lastDivDate,
       timestamp: new Date(),
     };
   } catch (e) {
@@ -459,6 +463,7 @@ export default function App() {
     { id: "glossary", label: "📚 용어" },
     { id: "history", label: "📈 기록" },
     { id: "timezone", label: "🕐 시간대" },
+    { id: "dividend", label: "💰 배당순위" },
   ];
 
   const C = {
@@ -859,7 +864,84 @@ export default function App() {
           </div>
         )}
         {/* ── 기록 탭 ── */}
-        {tab === "timezone" && (
+              {tab === "dividend" && (() => {
+        const ETF_TICKERS = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"];
+        const isW = (tk) => ["AMDW", "PLTW"].includes(tk);
+        const ranked = ETF_TICKERS
+          .map(tk => {
+            const q = quotes[tk];
+            const divWeekday = isW(tk) ? 1 : 4;
+            const todayDow = new Date().getDay();
+            const daysToDiv = (divWeekday - todayDow + 7) % 7 || 7;
+            const annualDiv = q?.lastDiv ? q.lastDiv * 52 : null;
+            const yieldPct = annualDiv && q?.price ? (annualDiv / q.price) * 100 : null;
+            return { tk, q, daysToDiv, annualDiv, yieldPct };
+          })
+          .sort((a, b) => (b.yieldPct ?? -1) - (a.yieldPct ?? -1));
+
+        const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
+        return (
+          <div style={{ padding: "0 2px" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>예상 배당 순위</div>
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 14 }}>최근 1회 지급액 기준 · 주배당(×52) 연환산</div>
+
+            {ranked.map(({ tk, q, daysToDiv, annualDiv, yieldPct }, i) => {
+              if (!q?.ok) return null;
+              const divColor = yieldPct >= 60 ? "#22c55e" : yieldPct >= 40 ? "#f59e0b" : "#94a3b8";
+              return (
+                <div key={tk} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 15px", marginBottom: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>{medals[i]}</span>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{tk}</div>
+                        <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{isW(tk) ? "Roundhill 월요일" : "YieldMax 목요일"} · 주배당</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: divColor }}>{yieldPct ? yieldPct.toFixed(1) + "%" : "-"}</div>
+                      <div style={{ fontSize: 10, color: C.muted }}>연환산 수익률</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                    <div style={{ background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
+                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>최근 배당 (1회)</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{q.lastDiv ? `$${q.lastDiv.toFixed(4)}` : "-"}</div>
+                    </div>
+                    <div style={{ background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
+                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>연환산 배당</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{annualDiv ? `$${annualDiv.toFixed(2)}` : "-"}</div>
+                    </div>
+                    <div style={{ background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
+                      <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>다음 배당락</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: daysToDiv <= 3 ? "#f59e0b" : C.text }}>D-{daysToDiv}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: 10, color: C.muted }}>현재가 ${q.price?.toFixed(2)} · 최근 배당락 {q.lastDivDate ?? "-"}</div>
+                    <div style={{ fontSize: 10, color: q.changePct >= 0 ? C.green : C.red, fontWeight: 600 }}>
+                      {q.changePct >= 0 ? "▲" : "▼"} {Math.abs(q.changePct)?.toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "11px 14px", marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: "#93c5fd", fontWeight: 700, marginBottom: 4 }}>ℹ️ 주의사항</div>
+              <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
+                · 배당금은 매주 옵션 프리미엄에 따라 변동됩니다<br/>
+                · VIX 높을수록 프리미엄 커져 배당 증가<br/>
+                · 연환산은 최근 1회 × 52 단순 추정값입니다
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {tab === "timezone" && (
         <div style={{ padding: "0 2px" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 14 }}>시간대 안내</div>
 
