@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.27";
+const APP_VERSION = "1.0.28";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -99,6 +99,15 @@ async function fetchQuote(ticker) {
     const divArr = divEvents ? Object.values(divEvents).sort((a, b) => b.date - a.date) : [];
     const lastDiv = divArr.length > 0 ? divArr[0].amount : null;
     const lastDivDate = divArr.length > 0 ? new Date(divArr[0].date * 1000).toISOString().slice(0, 10) : null;
+    // HV5: 5일 단기 실현 변동성 (forward IV proxy)
+    let hv5 = null;
+    if (closes.length >= 6) {
+      const rets5 = [];
+      for (let i = closes.length - 5; i < closes.length; i++) rets5.push(Math.log(closes[i] / closes[i - 1]));
+      const m5 = rets5.reduce((a, b) => a + b, 0) / rets5.length;
+      const v5 = rets5.reduce((s, r) => s + (r - m5) ** 2, 0) / rets5.length;
+      hv5 = Math.sqrt(v5) * Math.sqrt(252) * 100;
+    }
     const ma20 = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b, 0) / 20 : null;
     const aboveMA20 = ma20 != null ? meta.regularMarketPrice > ma20 : null;
     // HV20: 20일 연환산 실현 변동성 (%)
@@ -137,7 +146,7 @@ async function fetchQuote(ticker) {
       preMarketPrice: meta.preMarketPrice,
       preMarketChange: meta.preMarketPrice ? ((meta.preMarketPrice - meta.regularMarketPrice) / meta.regularMarketPrice) * 100 : null,
       todayVol, avgVol20, volRatio,
-      fiveDayReturn, rsi14, ma20, aboveMA20, hv20, lastDiv, lastDivDate,
+      fiveDayReturn, rsi14, ma20, aboveMA20, hv20, hv5, lastDiv, lastDivDate,
       timestamp: new Date(),
     };
   } catch (e) {
@@ -1248,6 +1257,21 @@ export default function App() {
         const ETF_TICKERS = ["NVDY", "AMDY", "TSMY", "AMDW", "PLTW"];
         const isW = (tk) => ["AMDW", "PLTW"].includes(tk);
         const vixNow = quotes["^VIX"]?.price ?? (manualVix ? parseFloat(manualVix) : 18);
+
+        // 종목별 자가 캘리브레이션 (검증 데이터 5건 이상 시)
+        const calibratedCapture = {};
+        if (predictionLog?.snapshots) {
+          ETF_TICKERS.forEach(tk => {
+            const items = predictionLog.snapshots.filter(s => s.tk === tk && s.actual != null && s.predicted > 0);
+            if (items.length >= 5) {
+              const avgRatio = items.reduce((a, s) => a + (s.actual / s.predicted), 0) / items.length;
+              calibratedCapture[tk] = +(ETF_CAPTURE * avgRatio).toFixed(3);
+            } else {
+              calibratedCapture[tk] = ETF_CAPTURE;
+            }
+          });
+        }
+
         const ranked = ETF_TICKERS
           .map(tk => {
             const q = quotes[tk];
@@ -1256,19 +1280,40 @@ export default function App() {
             const todayDow = new Date().getDay();
             const daysToDiv = (divWeekday - todayDow + 7) % 7 || 7;
 
-            // HV 기반 예상 (forward-looking)
-            const hv = baseQ?.hv20;
-            const weekPremYield = hv != null ? (hv / 100) * Math.sqrt(7 / 365) * 0.4 : null;
-            const hvDiv = weekPremYield && q?.price ? q.price * weekPremYield * ETF_CAPTURE : null;
+            // ① HV 블렌딩 (단기 60% + 장기 40%)
+            const hv20 = baseQ?.hv20;
+            const hv5 = baseQ?.hv5;
+            const hv = (hv5 != null && hv20 != null) ? hv5 * 0.6 + hv20 * 0.4 : hv20;
+
+            // ② 실적 임박 IV 부스트
+            const today = new Date();
+            const baseTk = BASE_MAP[tk];
+            let ivBoost = 1.0;
+            let earningsDays = null;
+            const earnEv = events.find(e => e.type === "EARNINGS" && (e.label.includes(baseTk) || (["NVDA","AMD","TSM"].includes(baseTk) && e.label.includes("TSMC"))));
+            if (earnEv) {
+              earningsDays = Math.ceil((new Date(earnEv.date) - today) / 86400000);
+              if (earningsDays >= 0 && earningsDays <= 7) ivBoost = 1.5;
+              else if (earningsDays > 7 && earningsDays <= 14) ivBoost = 1.2;
+            }
+
+            // ③ 종목별 캡처율 (캘리브레이션 또는 기본 0.65)
+            const capture = calibratedCapture[tk] ?? ETF_CAPTURE;
+
+            // 최종 예상
+            const weekPremYield = hv != null ? (hv / 100) * Math.sqrt(7 / 365) * 0.4 * ivBoost : null;
+            const hvDiv = weekPremYield && q?.price ? q.price * weekPremYield * capture : null;
             const hvAnnual = hvDiv ? hvDiv * 52 : null;
             const hvYield = hvAnnual && q?.price ? (hvAnnual / q.price) * 100 : null;
 
-            // 직전 배당금 (Yahoo Finance 최근 1회)
+            // 직전 배당금
             const lastDiv = q?.lastDiv;
             const histAnnual = lastDiv ? lastDiv * 52 : null;
             const histYield = histAnnual && q?.price ? (histAnnual / q.price) * 100 : null;
 
-            return { tk, q, baseQ, daysToDiv, hv, hvDiv, hvAnnual, hvYield, lastDiv, histAnnual, histYield };
+            const isCalibrated = calibratedCapture[tk] != null && calibratedCapture[tk] !== ETF_CAPTURE;
+
+            return { tk, q, baseQ, daysToDiv, hv, hv20, hv5, ivBoost, earningsDays, capture, isCalibrated, hvDiv, hvAnnual, hvYield, lastDiv, histAnnual, histYield };
           })
           .sort((a, b) => (b.hvYield ?? -1) - (a.hvYield ?? -1));
 
@@ -1327,7 +1372,11 @@ export default function App() {
                         <div>연 {hvAnnual ? `$${hvAnnual.toFixed(2)}` : "-"}</div>
                         {hvAnnual && usdkrw && <div>₩{Math.round(hvAnnual * usdkrw).toLocaleString()}</div>}
                       </div>
-                      <div style={{ fontSize: 9, color: C.muted, marginTop: 5 }}>{BASE_MAP[tk]} HV20: {hv ? hv.toFixed(1) + "%" : "-"}</div>
+                      <div style={{ fontSize: 9, color: C.muted, marginTop: 5, lineHeight: 1.4 }}>
+                        {BASE_MAP[tk]} HV {hv5 != null && hv20 != null ? `5d ${hv5.toFixed(0)}%/20d ${hv20.toFixed(0)}%` : `${hv20?.toFixed(0) ?? "-"}%`}
+                        {ivBoost > 1 && <span style={{ color: "#dc2626", fontWeight: 700 }}> · IV×{ivBoost.toFixed(1)} (실적 D-{earningsDays})</span>}
+                        {isCalibrated && <span style={{ color: "#0891b2", fontWeight: 700 }}> · 캘리 {capture.toFixed(2)}</span>}
+                      </div>
                     </div>
 
                     {/* 직전 배당금 */}
@@ -1362,11 +1411,13 @@ export default function App() {
             })}
 
             <div style={{ background: "#1e3a5f", borderRadius: 10, padding: "12px 14px", marginTop: 4 }}>
-              <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 계산 방식</div>
+              <div style={{ fontSize: 11, color: "#93c5fd", fontWeight: 700, marginBottom: 6 }}>ℹ️ 정밀 예측 계산 방식</div>
               <div style={{ fontSize: 10, color: "#cbd5e1", lineHeight: 1.7 }}>
-                · <strong style={{color:"#93c5fd"}}>🎯 HV 기반 예상</strong>: 기초종목 20일 실현변동성으로 다음주 콜프리미엄 추정 (forward-looking)<br/>
-                · <strong style={{color:"#cbd5e1"}}>📊 직전 배당금</strong>: Yahoo Finance 최근 1회 실제 지급액<br/>
-                · 공식: ETF가격 × HV × √(7/365) × 0.4 × {ETF_CAPTURE} (캡처율)<br/>
+                <strong style={{color:"#93c5fd"}}>① HV 블렌딩</strong> = HV5×60% + HV20×40% (단기 변동성 강조)<br/>
+                <strong style={{color:"#fca5a5"}}>② IV 부스트</strong>: 실적 D-7 이내 ×1.5 / D-14 이내 ×1.2<br/>
+                <strong style={{color:"#67e8f9"}}>③ 캘리브레이션</strong>: 검증 5건+ 시 종목별 자동 캡처율 조정<br/>
+                <strong style={{color:"#cbd5e1"}}>최종 공식</strong>: ETF가 × HV블렌딩 × √(7/365) × 0.4 × IV부스트 × 캡처율<br/>
+                · 📊 직전 배당금: Yahoo Finance 최근 1회 실제 지급액<br/>
                 · 순위는 HV 기반 예상 수익률 기준
               </div>
             </div>
