@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.34";
+const APP_VERSION = "1.0.35";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -690,6 +690,7 @@ export default function App() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showTabOrderModal, setShowTabOrderModal] = useState(false);
+  const [draggingIdx, setDraggingIdx] = useState(null);
   const [tabOrder, setTabOrder] = useState(() => {
     const saved = storage.get(STORAGE_KEYS.tabOrder, null);
     const defaultIds = DEFAULT_TABS.map((t) => t.id);
@@ -879,35 +880,59 @@ export default function App() {
       {showTabOrderModal && (
         <Modal C={C} onClose={() => setShowTabOrderModal(false)} title="탭 순서 편집">
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, lineHeight: 1.5 }}>
-            ▲▼ 버튼으로 순서를 바꾸세요. 변경은 자동 저장됩니다.
+            ☰ 핸들을 잡고 드래그해 순서를 바꾸세요. 변경은 자동 저장됩니다.
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: "60vh", overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: "60vh", overflowY: "auto", userSelect: "none" }}>
             {tabOrder.map((id, idx) => {
               const t = DEFAULT_TABS.find((x) => x.id === id);
               if (!t) return null;
-              const moveUp = () => {
-                if (idx === 0) return;
-                setTabOrder((prev) => {
-                  const next = [...prev];
-                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                  return next;
-                });
-              };
-              const moveDown = () => {
-                if (idx === tabOrder.length - 1) return;
-                setTabOrder((prev) => {
-                  const next = [...prev];
-                  [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-                  return next;
-                });
-              };
+              const isDragging = draggingIdx === idx;
               return (
-                <div key={id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 10px" }}>
-                  <div style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 600 }}>{t.label}</div>
-                  <button onClick={moveUp} disabled={idx === 0}
-                    style={{ width: 30, height: 30, background: idx === 0 ? "#f1f5f9" : C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: idx === 0 ? "#cbd5e1" : C.blue, fontSize: 14, fontWeight: 700, cursor: idx === 0 ? "default" : "pointer", lineHeight: 1 }}>▲</button>
-                  <button onClick={moveDown} disabled={idx === tabOrder.length - 1}
-                    style={{ width: 30, height: 30, background: idx === tabOrder.length - 1 ? "#f1f5f9" : C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: idx === tabOrder.length - 1 ? "#cbd5e1" : C.blue, fontSize: 14, fontWeight: 700, cursor: idx === tabOrder.length - 1 ? "default" : "pointer", lineHeight: 1 }}>▼</button>
+                <div
+                  key={id}
+                  data-tab-row-idx={idx}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDraggingIdx(idx);
+                  }}
+                  onPointerMove={(e) => {
+                    if (draggingIdx === null) return;
+                    const els = document.elementsFromPoint(e.clientX, e.clientY);
+                    const overEl = els.find((el) => el?.dataset?.tabRowIdx != null);
+                    if (!overEl) return;
+                    const overIdx = parseInt(overEl.dataset.tabRowIdx, 10);
+                    if (overIdx === draggingIdx || Number.isNaN(overIdx)) return;
+                    setTabOrder((prev) => {
+                      const next = [...prev];
+                      const [moved] = next.splice(draggingIdx, 1);
+                      next.splice(overIdx, 0, moved);
+                      return next;
+                    });
+                    setDraggingIdx(overIdx);
+                  }}
+                  onPointerUp={(e) => {
+                    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+                    setDraggingIdx(null);
+                  }}
+                  onPointerCancel={() => setDraggingIdx(null)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: isDragging ? "#dbeafe" : "#f8fafc",
+                    border: `1px solid ${isDragging ? C.blue : C.border}`,
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    opacity: isDragging ? 0.85 : 1,
+                    boxShadow: isDragging ? "0 4px 12px rgba(29,78,216,0.18)" : "none",
+                    touchAction: "none",
+                    cursor: isDragging ? "grabbing" : "grab",
+                    transition: isDragging ? "none" : "background 0.12s, border-color 0.12s",
+                  }}
+                >
+                  <div style={{ fontSize: 16, color: C.muted, lineHeight: 1, pointerEvents: "none" }}>☰</div>
+                  <div style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 600, pointerEvents: "none" }}>{t.label}</div>
+                  <div style={{ fontSize: 10, color: C.muted, pointerEvents: "none" }}>{idx + 1}</div>
                 </div>
               );
             })}
