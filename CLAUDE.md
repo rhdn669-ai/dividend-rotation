@@ -14,7 +14,7 @@ NVDY / AMDW 배당 회전 전략 보조 도구. 진입 타이밍 자동 판단 +
 1. **API 키를 코드에 하드코딩하지 않는다** — 모든 키는 .env 또는 CF Pages 환경변수
 2. **CORS 우회는 반드시 CF Pages Functions로 처리** — 클라이언트 직접 호출 금지
 3. **검증된 데이터만 표시** — 통상적 경험칙은 반드시 "통상적" 또는 "검증 안 됨" 명시
-4. **사용자 데이터는 localStorage에만** — 외부 전송 금지
+4. **사용자 데이터는 본인 Firebase Firestore + localStorage 캐시** — 타사 서버 전송 금지. 비로그인 시 localStorage만 사용 (오프라인 모드)
 5. **localStorage 키 prefix**: `dividend-rotation:` (충돌 방지)
 6. **세금/투자 자문 멘트 금지** — "투자 권유 아님" 디스클레이머 유지
 

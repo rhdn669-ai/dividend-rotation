@@ -1,7 +1,7 @@
 {
   "name": "dividend-rotation",
   "private": true,
-  "version": "1.0.35",
+  "version": "1.0.36",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "firebase": "^12.13.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

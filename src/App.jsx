@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { isFirebaseConfigured } from "./lib/firebase.js";
+import { watchAuth, signInGoogle, signOutUser, fetchCloudState, writeCloudState, subscribeCloudState, mergeCloudAndLocal } from "./lib/cloudSync.js";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.35";
+const APP_VERSION = "1.0.36";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -706,12 +708,108 @@ export default function App() {
     from: "NVDY", to: "AMDW", note: "",
   });
 
-  // storage 자동 저장
+  // 클라우드 sync state
+  const [cloudUser, setCloudUser] = useState(null);
+  const [cloudReady, setCloudReady] = useState(false);
+  const [cloudSyncing, setCloudSyncing] = useState(false);
+  const lastSyncedJsonRef = useRef("");
+
+  // storage 자동 저장 (오프라인 캐시)
   useEffect(() => storage.set(STORAGE_KEYS.events, events), [events]);
   useEffect(() => storage.set(STORAGE_KEYS.log, rotationLog), [rotationLog]);
   useEffect(() => storage.set(STORAGE_KEYS.vix, manualVix), [manualVix]);
   useEffect(() => storage.set(STORAGE_KEYS.ticker, activeTicker), [activeTicker]);
   useEffect(() => storage.set(STORAGE_KEYS.tabOrder, tabOrder), [tabOrder]);
+
+  // 인증 상태 구독
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+    return watchAuth((u) => {
+      setCloudUser(u);
+      if (!u) {
+        setCloudReady(false);
+        lastSyncedJsonRef.current = "";
+      }
+    });
+  }, []);
+
+  // 로그인 후 초기 동기화 + 실시간 구독
+  useEffect(() => {
+    if (!cloudUser) return;
+    let unsubscribe = null;
+    let cancelled = false;
+    setCloudSyncing(true);
+    (async () => {
+      try {
+        const cloud = await fetchCloudState(cloudUser.uid);
+        if (cancelled) return;
+        const local = { events, log: rotationLog, vix: manualVix, scoreHistory, tabOrder, activeTicker };
+        if (!cloud) {
+          // 첫 로그인: 로컬 데이터 업로드
+          await writeCloudState(cloudUser.uid, local);
+          lastSyncedJsonRef.current = JSON.stringify(local);
+        } else {
+          // 클라우드 우선 적용
+          if (Array.isArray(cloud.events)) setEvents(cloud.events);
+          if (Array.isArray(cloud.log)) setRotationLog(cloud.log);
+          if (typeof cloud.vix !== "undefined") setManualVix(cloud.vix);
+          if (Array.isArray(cloud.scoreHistory)) setScoreHistory(cloud.scoreHistory);
+          if (Array.isArray(cloud.tabOrder) && cloud.tabOrder.length) {
+            const defaultIds = DEFAULT_TABS.map((t) => t.id);
+            const valid = cloud.tabOrder.filter((id) => defaultIds.includes(id));
+            const missing = defaultIds.filter((id) => !valid.includes(id));
+            setTabOrder([...valid, ...missing]);
+          }
+          if (typeof cloud.activeTicker === "string") setActiveTicker(cloud.activeTicker);
+          lastSyncedJsonRef.current = JSON.stringify({
+            events: cloud.events, log: cloud.log, vix: cloud.vix, scoreHistory: cloud.scoreHistory, tabOrder: cloud.tabOrder, activeTicker: cloud.activeTicker,
+          });
+        }
+        setCloudReady(true);
+        unsubscribe = subscribeCloudState(cloudUser.uid, (data) => {
+          if (!data) return;
+          const snapJson = JSON.stringify({
+            events: data.events, log: data.log, vix: data.vix, scoreHistory: data.scoreHistory, tabOrder: data.tabOrder, activeTicker: data.activeTicker,
+          });
+          if (snapJson === lastSyncedJsonRef.current) return; // 자기가 보낸 echo
+          lastSyncedJsonRef.current = snapJson;
+          if (Array.isArray(data.events)) setEvents(data.events);
+          if (Array.isArray(data.log)) setRotationLog(data.log);
+          if (typeof data.vix !== "undefined") setManualVix(data.vix);
+          if (Array.isArray(data.scoreHistory)) setScoreHistory(data.scoreHistory);
+          if (Array.isArray(data.tabOrder) && data.tabOrder.length) {
+            const defaultIds = DEFAULT_TABS.map((t) => t.id);
+            const valid = data.tabOrder.filter((id) => defaultIds.includes(id));
+            const missing = defaultIds.filter((id) => !valid.includes(id));
+            setTabOrder([...valid, ...missing]);
+          }
+          if (typeof data.activeTicker === "string") setActiveTicker(data.activeTicker);
+        });
+      } catch (e) {
+        console.error("[cloud] initial sync failed:", e);
+      } finally {
+        if (!cancelled) setCloudSyncing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloudUser]);
+
+  // 로컬 변경 → 클라우드 write (debounced 500ms)
+  useEffect(() => {
+    if (!cloudUser || !cloudReady) return;
+    const snapshot = { events, log: rotationLog, vix: manualVix, scoreHistory, tabOrder, activeTicker };
+    const json = JSON.stringify(snapshot);
+    if (json === lastSyncedJsonRef.current) return;
+    const id = setTimeout(() => {
+      lastSyncedJsonRef.current = json;
+      writeCloudState(cloudUser.uid, snapshot).catch((e) => console.error("[cloud] write failed:", e));
+    }, 500);
+    return () => clearTimeout(id);
+  }, [events, rotationLog, manualVix, scoreHistory, tabOrder, activeTicker, cloudUser, cloudReady]);
   useEffect(() => {
     const id = setInterval(() => setMarketTime(new Date()), 10000);
     return () => clearInterval(id);
@@ -836,6 +934,26 @@ export default function App() {
             <span style={{ fontSize: 9, color: "#94a3b8" }}>ET {marketStatus.etStr}</span>
             <span style={{ background: `${marketStatus.color}25`, color: marketStatus.color, borderRadius: 5, padding: "1px 8px", fontSize: 9, fontWeight: 700 }}>{marketStatus.label}</span>
           </div>
+        </div>
+        {/* 클라우드 sync 상태 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "6px 8px", background: cloudUser ? "#dcfce7" : isFirebaseConfigured ? "#fef3c7" : "#fee2e2", borderRadius: 7 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: cloudUser ? "#166534" : isFirebaseConfigured ? "#92400e" : "#991b1b", display: "flex", alignItems: "center", gap: 6 }}>
+            {!isFirebaseConfigured && <><span>⚠️</span><span>Firebase 미설정 — .env 입력 필요</span></>}
+            {isFirebaseConfigured && !cloudUser && <><span>☁️</span><span>로그인하면 기기간 자동 동기화</span></>}
+            {cloudUser && <><span>{cloudSyncing ? "⏳" : "✓"}</span><span>{cloudUser.displayName || cloudUser.email} · {cloudSyncing ? "동기화중" : "동기화됨"}</span></>}
+          </div>
+          {isFirebaseConfigured && !cloudUser && (
+            <button onClick={() => signInGoogle().catch((e) => alert("로그인 실패: " + e.message))}
+              style={{ background: C.blue, border: "none", borderRadius: 6, color: "#fff", padding: "4px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+              Google 로그인
+            </button>
+          )}
+          {cloudUser && (
+            <button onClick={() => signOutUser().catch(() => {})}
+              style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 6, color: C.sub, padding: "3px 8px", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
+              로그아웃
+            </button>
+          )}
         </div>
         {/* 글로벌 마켓 스트립 */}
         <div style={{ display: "flex", justifyContent: "space-around", gap: 4, marginTop: 8, padding: "6px 4px", background: "#f8fafc", borderRadius: 7 }}>
