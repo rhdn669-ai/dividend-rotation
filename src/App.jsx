@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.33";
+const APP_VERSION = "1.0.34";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -61,7 +61,22 @@ const STORAGE_KEYS = {
   vix: "dividend-rotation:vix",
   ticker: "dividend-rotation:active-ticker",
   scoreHistory: "dividend-rotation:score-history",
+  tabOrder: "dividend-rotation:tab-order",
 };
+
+const DEFAULT_TABS = [
+  { id: "signal", label: "📊 진입신호" },
+  { id: "market", label: "💹 시장현황" },
+  { id: "calendar", label: "📅 이벤트" },
+  { id: "log", label: "🔄 회전이력" },
+  { id: "guide", label: "📖 가이드" },
+  { id: "glossary", label: "📚 용어" },
+  { id: "history", label: "📈 기록" },
+  { id: "timezone", label: "🕐 시간대" },
+  { id: "dividend", label: "💰 배당순위" },
+  { id: "divaccuracy", label: "🎯 배당예측" },
+  { id: "entryvalid", label: "📊 진입검증" },
+];
 
 // ─── localStorage Helper (CF Pages 배포 후 정상 작동) ──────────────────────
 const storage = {
@@ -674,6 +689,16 @@ export default function App() {
   const [tab, setTab] = useState("signal");
   const [showEventModal, setShowEventModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showTabOrderModal, setShowTabOrderModal] = useState(false);
+  const [tabOrder, setTabOrder] = useState(() => {
+    const saved = storage.get(STORAGE_KEYS.tabOrder, null);
+    const defaultIds = DEFAULT_TABS.map((t) => t.id);
+    if (!Array.isArray(saved)) return defaultIds;
+    // 기존 순서 유지 + 누락된 신규 탭은 뒤에 추가, 사라진 ID는 제거
+    const valid = saved.filter((id) => defaultIds.includes(id));
+    const missing = defaultIds.filter((id) => !valid.includes(id));
+    return [...valid, ...missing];
+  });
   const [newEvent, setNewEvent] = useState({ date: "", type: "CPI", label: "" });
   const [newLog, setNewLog] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -685,6 +710,7 @@ export default function App() {
   useEffect(() => storage.set(STORAGE_KEYS.log, rotationLog), [rotationLog]);
   useEffect(() => storage.set(STORAGE_KEYS.vix, manualVix), [manualVix]);
   useEffect(() => storage.set(STORAGE_KEYS.ticker, activeTicker), [activeTicker]);
+  useEffect(() => storage.set(STORAGE_KEYS.tabOrder, tabOrder), [tabOrder]);
   useEffect(() => {
     const id = setInterval(() => setMarketTime(new Date()), 10000);
     return () => clearInterval(id);
@@ -768,19 +794,10 @@ export default function App() {
   const fmtDate = (s) => { const d = new Date(s); return `${d.getMonth() + 1}/${d.getDate()}`; };
   const dDays = (s) => Math.ceil((new Date(s) - new Date(todayStr)) / 86400000);
 
-  const TABS = [
-    { id: "signal", label: "📊 진입신호" },
-    { id: "market", label: "💹 시장현황" },
-    { id: "calendar", label: "📅 이벤트" },
-    { id: "log", label: "🔄 회전이력" },
-    { id: "guide", label: "📖 가이드" },
-    { id: "glossary", label: "📚 용어" },
-    { id: "history", label: "📈 기록" },
-    { id: "timezone", label: "🕐 시간대" },
-    { id: "dividend", label: "💰 배당순위" },
-    { id: "divaccuracy", label: "🎯 배당예측" },
-    { id: "entryvalid", label: "📊 진입검증" },
-  ];
+  const TABS = useMemo(() => {
+    const byId = Object.fromEntries(DEFAULT_TABS.map((t) => [t.id, t]));
+    return tabOrder.map((id) => byId[id]).filter(Boolean);
+  }, [tabOrder]);
 
   const C = {
     bg: "#f8fafc", card: "#ffffff", border: "#e2e8f0",
@@ -845,14 +862,62 @@ export default function App() {
       </div>
 
       {/* 탭 */}
-      <div style={{ display: "flex", background: C.card, borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
+      <div style={{ display: "flex", background: C.card, borderBottom: `1px solid ${C.border}`, overflowX: "auto", position: "relative" }}>
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{ flex: 1, minWidth: 72, padding: "11px 6px", background: "none", border: "none", borderBottom: tab === t.id ? `2px solid ${C.blue}` : "2px solid transparent", color: tab === t.id ? C.blue : C.muted, fontSize: 10, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
             {t.label}
           </button>
         ))}
+        <button onClick={() => setShowTabOrderModal(true)} aria-label="탭 순서 편집"
+          title="탭 순서 편집"
+          style={{ position: "sticky", right: 0, flex: "0 0 auto", minWidth: 40, padding: "11px 10px", background: `linear-gradient(to right, transparent, ${C.card} 30%)`, border: "none", borderBottom: "2px solid transparent", color: C.sub, fontSize: 14, cursor: "pointer" }}>
+          ⚙️
+        </button>
       </div>
+
+      {showTabOrderModal && (
+        <Modal C={C} onClose={() => setShowTabOrderModal(false)} title="탭 순서 편집">
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, lineHeight: 1.5 }}>
+            ▲▼ 버튼으로 순서를 바꾸세요. 변경은 자동 저장됩니다.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: "60vh", overflowY: "auto" }}>
+            {tabOrder.map((id, idx) => {
+              const t = DEFAULT_TABS.find((x) => x.id === id);
+              if (!t) return null;
+              const moveUp = () => {
+                if (idx === 0) return;
+                setTabOrder((prev) => {
+                  const next = [...prev];
+                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                  return next;
+                });
+              };
+              const moveDown = () => {
+                if (idx === tabOrder.length - 1) return;
+                setTabOrder((prev) => {
+                  const next = [...prev];
+                  [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                  return next;
+                });
+              };
+              return (
+                <div key={id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 10px" }}>
+                  <div style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 600 }}>{t.label}</div>
+                  <button onClick={moveUp} disabled={idx === 0}
+                    style={{ width: 30, height: 30, background: idx === 0 ? "#f1f5f9" : C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: idx === 0 ? "#cbd5e1" : C.blue, fontSize: 14, fontWeight: 700, cursor: idx === 0 ? "default" : "pointer", lineHeight: 1 }}>▲</button>
+                  <button onClick={moveDown} disabled={idx === tabOrder.length - 1}
+                    style={{ width: 30, height: 30, background: idx === tabOrder.length - 1 ? "#f1f5f9" : C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: idx === tabOrder.length - 1 ? "#cbd5e1" : C.blue, fontSize: 14, fontWeight: 700, cursor: idx === tabOrder.length - 1 ? "default" : "pointer", lineHeight: 1 }}>▼</button>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <button onClick={() => setTabOrder(DEFAULT_TABS.map((t) => t.id))} style={btnCancel(C)}>기본값 복원</button>
+            <button onClick={() => setShowTabOrderModal(false)} style={btnPrimary(C)}>완료</button>
+          </div>
+        </Modal>
+      )}
 
       <div style={{ padding: 16 }}>
 
