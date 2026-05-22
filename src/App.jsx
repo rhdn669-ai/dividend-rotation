@@ -3,7 +3,7 @@ import { isFirebaseConfigured } from "./lib/firebase.js";
 import { watchAuth, signInGoogle, signOutUser, fetchCloudState, writeCloudState, subscribeCloudState, mergeCloudAndLocal } from "./lib/cloudSync.js";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.37";
+const APP_VERSION = "1.0.38";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -1746,6 +1746,10 @@ export default function App() {
         const matched = snaps.filter(s => s.actual != null);
         const pending = snaps.filter(s => s.actual == null);
         const usdkrw = quotes["KRW=X"]?.price;
+        const bfCount = snaps.filter(s => s.backfilled).length;
+        const liveCount = snaps.length - bfCount;
+        const matchedLive = matched.filter(s => !s.backfilled);
+        const matchedBf = matched.filter(s => s.backfilled);
 
         // 배당예측 통계
         const errors = matched.map(s => s.errorPct).filter(e => e != null);
@@ -1795,8 +1799,16 @@ export default function App() {
           <div style={{ padding: "0 2px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{tabTitle}</div>
-              <div style={{ fontSize: 10, color: C.muted }}>{predictFilter === "ALL" ? `전체 ${allSnaps.length}건` : `${predictFilter} ${snaps.length}건`}</div>
+              <div style={{ fontSize: 10, color: C.muted, textAlign: "right", lineHeight: 1.4 }}>
+                {predictFilter === "ALL" ? `전체 ${allSnaps.length}건` : `${predictFilter} ${snaps.length}건`}
+                {bfCount > 0 && <div style={{ fontSize: 9 }}>실시간 <strong style={{ color: C.green }}>{liveCount}</strong> · 백필 <strong style={{ color: "#7c3aed" }}>{bfCount}</strong></div>}
+              </div>
             </div>
+            {bfCount > 0 && (
+              <div style={{ background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: 8, padding: "8px 11px", marginBottom: 10, fontSize: 10, color: "#6b21a8", lineHeight: 1.5 }}>
+                <strong>⚠️ 백필 데이터 안내</strong> — 보라색 <span style={{ background: "#e9d5ff", color: "#6b21a8", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 700 }}>백필</span> 라벨이 붙은 항목은 과거 D-1 시점 데이터로 사후 시뮬레이션한 backtest 결과입니다. 진짜 실시간 예측이 아니며, 과거 이벤트(CPI/FOMC/실적)는 통과로 가정합니다.
+              </div>
+            )}
 
             {/* 종목 필터 */}
             <div style={{ display: "flex", gap: 4, marginBottom: 12, overflowX: "auto" }}>
@@ -1813,7 +1825,10 @@ export default function App() {
               <>
                 {/* 핵심 지표 4개 */}
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 13px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: 0.3 }}>📊 예측 정확도 지표</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: 0.3, display: "flex", justifyContent: "space-between" }}>
+                    <span>📊 예측 정확도 지표</span>
+                    {matched.length > 0 && <span style={{ fontWeight: 400 }}>매칭 {matched.length}건 (실시간 {matchedLive.length} · 백필 {matchedBf.length})</span>}
+                  </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                     <StatCard label="적중률 (±20%)" value={hitRate != null ? `${hitRate.toFixed(0)}%` : "-"}
                       sub={`${matched.length}건 중 ${absErrors.filter(e => e <= 20).length}건`}
@@ -2218,7 +2233,13 @@ export default function App() {
                 <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderLeft: `4px solid ${cardLeftColor}`, borderRadius: 10, padding: "11px 13px", marginBottom: 7, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.tk} <span style={{ fontSize: 10, color: C.muted, fontWeight: 400 }}>· {s.exDivDate}</span></div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span>{s.tk}</span>
+                        {s.backfilled && (
+                          <span title="과거 D-1 데이터로 사후 시뮬레이션한 backtest 결과" style={{ background: "#e9d5ff", color: "#6b21a8", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 700, letterSpacing: 0.3 }}>백필</span>
+                        )}
+                        <span style={{ fontSize: 10, color: C.muted, fontWeight: 400 }}>· {s.exDivDate}</span>
+                      </div>
                       <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>
                         {isAccuracy
                           ? `HV20: ${s.hv20?.toFixed(1)}% · VIX: ${s.vix?.toFixed(2)} · 진입가 $${s.etfPrice?.toFixed(2)}`
