@@ -133,8 +133,9 @@ async function main() {
   console.log(`ET: ${nowEt.toString()}, dow=${dow}`);
 
   const hour = nowEt.getHours();
-  // 미국 장 마감 직전(14:00~16:00 ET) 캡처. 다른 시간은 매칭만 수행
-  const inCaptureWindow = hour >= 14 && hour <= 16;
+  // 미국 장 개장 시간(9~16시 ET) 전반에 걸쳐 캡처. cron 지연/실패 대비 윈도우 확장.
+  // 같은 (tk, exDivDate) 조합은 중복 저장 방지하므로 안전.
+  const inCaptureWindow = hour >= 9 && hour <= 16;
   const captureY = dow === 3 && inCaptureWindow;
   const captureW = dow === 5 && inCaptureWindow;
   let changed = false;

@@ -2,8 +2,8 @@ name: Snapshot Dividend Predictions
 
 on:
   schedule:
-    # 3시간마다 실행 (UTC) — ex-div 종료 후 평균 1.5시간 내 매칭
-    - cron: '30 1,4,7,10,13,16,19,22 * * *'
+    # 매시간 실행 (UTC). ET 9~16시 캡처 윈도우와 cron 지연에 대비
+    - cron: '15 * * * *'
   workflow_dispatch:
 
 permissions:

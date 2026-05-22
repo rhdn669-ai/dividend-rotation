@@ -3,7 +3,7 @@ import { isFirebaseConfigured } from "./lib/firebase.js";
 import { watchAuth, signInGoogle, signOutUser, fetchCloudState, writeCloudState, subscribeCloudState, mergeCloudAndLocal } from "./lib/cloudSync.js";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.36";
+const APP_VERSION = "1.0.37";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
