@@ -3,7 +3,7 @@ import { isFirebaseConfigured } from "./lib/firebase.js";
 import { watchAuth, signInGoogle, signOutUser, fetchCloudState, writeCloudState, subscribeCloudState, mergeCloudAndLocal } from "./lib/cloudSync.js";
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "1.0.38";
+const APP_VERSION = "1.0.39";
 const BASE_MAP = { NVDY: "NVDA", AMDW: "AMD", AMDY: "AMD", TSMY: "TSM", PLTW: "PLTR" };
 const ETF_CAPTURE = 0.65; // ETF가 옵션 프리미엄을 캡처하는 추정 비율
 
@@ -76,7 +76,6 @@ const DEFAULT_TABS = [
   { id: "history", label: "📈 기록" },
   { id: "timezone", label: "🕐 시간대" },
   { id: "dividend", label: "💰 배당순위" },
-  { id: "divaccuracy", label: "🎯 배당예측" },
   { id: "entryvalid", label: "📊 진입검증" },
 ];
 
@@ -981,16 +980,18 @@ export default function App() {
       </div>
 
       {/* 탭 */}
-      <div style={{ display: "flex", background: C.card, borderBottom: `1px solid ${C.border}`, overflowX: "auto", position: "relative" }}>
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ flex: 1, minWidth: 72, padding: "11px 6px", background: "none", border: "none", borderBottom: tab === t.id ? `2px solid ${C.blue}` : "2px solid transparent", color: tab === t.id ? C.blue : C.muted, fontSize: 10, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-            {t.label}
-          </button>
-        ))}
+      <div style={{ display: "flex", background: C.card, borderBottom: `1px solid ${C.border}`, alignItems: "stretch" }}>
+        <div style={{ display: "flex", flex: 1, overflowX: "auto", minWidth: 0 }}>
+          {TABS.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              style={{ flex: 1, minWidth: 72, padding: "11px 6px", background: "none", border: "none", borderBottom: tab === t.id ? `2px solid ${C.blue}` : "2px solid transparent", color: tab === t.id ? C.blue : C.muted, fontSize: 10, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
         <button onClick={() => setShowTabOrderModal(true)} aria-label="탭 순서 편집"
           title="탭 순서 편집"
-          style={{ position: "sticky", right: 0, flex: "0 0 auto", minWidth: 40, padding: "11px 10px", background: `linear-gradient(to right, transparent, ${C.card} 30%)`, border: "none", borderBottom: "2px solid transparent", color: C.sub, fontSize: 14, cursor: "pointer" }}>
+          style={{ flex: "0 0 auto", minWidth: 40, padding: "11px 10px", background: C.card, borderLeft: `1px solid ${C.border}`, borderTop: "none", borderRight: "none", borderBottom: "2px solid transparent", color: C.sub, fontSize: 14, cursor: "pointer" }}>
           ⚙️
         </button>
       </div>
@@ -1724,7 +1725,7 @@ export default function App() {
         );
       })()}
 
-            {(tab === "divaccuracy" || tab === "entryvalid") && (() => {
+            {tab === "entryvalid" && (() => {
         if (!predictionLog) return <div style={{ textAlign: "center", padding: 40, color: C.muted }}>불러오는 중...</div>;
         const allSnaps = [...(predictionLog.snapshots || [])].sort((a, b) => b.exDivDate.localeCompare(a.exDivDate));
 
