@@ -6032,14 +6032,14 @@
         "AMDW 변동",
         "AMD RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.885,
+      "actualPaidDate": "2026-05-26",
+      "accuracy": 27.89,
+      "errorPct": -72.11,
+      "priceAfterExDiv": 106.23,
+      "capitalChangePct": 6.34,
+      "netReturnPct": 7.22,
+      "profitable": true
     },
     {
       "ts": "2026-05-22T15:22:02.793Z",
@@ -6060,15 +6060,15 @@
       "failedLabels": [
         "PLTR MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.185,
+      "actualPaidDate": "2026-05-26",
+      "accuracy": 63.51,
+      "errorPct": -36.49,
+      "priceAfterExDiv": 21.29,
+      "capitalChangePct": -0.79,
+      "netReturnPct": 0.07,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-05-22T15:22:02.793Z"
+  "updatedAt": "2026-05-27T04:47:05.583Z"
 }
