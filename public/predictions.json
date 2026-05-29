@@ -6089,14 +6089,14 @@
         "NVDA MA20",
         "NVDA 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.125,
+      "actualPaidDate": "2026-05-28",
+      "accuracy": 64.3,
+      "errorPct": -35.7,
+      "priceAfterExDiv": 13.56,
+      "capitalChangePct": -0.07,
+      "netReturnPct": 0.85,
+      "profitable": true
     },
     {
       "ts": "2026-05-27T16:50:20.096Z",
@@ -6115,14 +6115,14 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 1.159,
+      "actualPaidDate": "2026-05-28",
+      "accuracy": 65.84,
+      "errorPct": -34.16,
+      "priceAfterExDiv": 57.22,
+      "capitalChangePct": 1.56,
+      "netReturnPct": 3.62,
+      "profitable": true
     },
     {
       "ts": "2026-05-27T16:50:20.096Z",
@@ -6141,15 +6141,15 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.131,
+      "actualPaidDate": "2026-05-28",
+      "accuracy": 60.27,
+      "errorPct": -39.73,
+      "priceAfterExDiv": 16.89,
+      "capitalChangePct": -0.41,
+      "netReturnPct": 0.36,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-05-27T16:50:20.096Z"
+  "updatedAt": "2026-05-29T04:41:36.641Z"
 }
