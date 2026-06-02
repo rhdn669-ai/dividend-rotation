@@ -6167,10 +6167,10 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 1.819,
+      "actualPaidDate": "2026-06-01",
+      "accuracy": 53.61,
+      "errorPct": -46.39,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -6197,15 +6197,15 @@
         "PLTW 변동",
         "PLTR RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.239,
+      "actualPaidDate": "2026-06-01",
+      "accuracy": 48.39,
+      "errorPct": -51.61,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-05-29T16:53:22.707Z"
+  "updatedAt": "2026-06-02T01:35:57.980Z"
 }
