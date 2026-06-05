@@ -6226,14 +6226,14 @@
         "NVDA 변동",
         "NVDA MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.131,
+      "actualPaidDate": "2026-06-04",
+      "accuracy": 62.17,
+      "errorPct": -37.83,
+      "priceAfterExDiv": 13.165,
+      "capitalChangePct": -3.66,
+      "netReturnPct": -2.7,
+      "profitable": false
     },
     {
       "ts": "2026-06-03T17:16:26.507Z",
@@ -6254,14 +6254,14 @@
       "failedLabels": [
         "AMD RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 1.173,
+      "actualPaidDate": "2026-06-04",
+      "accuracy": 67.03,
+      "errorPct": -32.97,
+      "priceAfterExDiv": 52.534,
+      "capitalChangePct": -10.26,
+      "netReturnPct": -8.26,
+      "profitable": false
     },
     {
       "ts": "2026-06-03T17:16:26.507Z",
@@ -6280,6 +6280,71 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
+      "actual": 0.149,
+      "actualPaidDate": "2026-06-04",
+      "accuracy": 61.01,
+      "errorPct": -38.99,
+      "priceAfterExDiv": 16.64,
+      "capitalChangePct": -4.15,
+      "netReturnPct": -3.29,
+      "profitable": false
+    },
+    {
+      "ts": "2026-06-05T16:08:41.125Z",
+      "tk": "AMDW",
+      "exDivDate": "2026-06-08",
+      "predicted": 2.551409,
+      "predictedAnnual": 132.67,
+      "predictedYield": 133.72,
+      "hv20": 71.42,
+      "vix": 17.2,
+      "etfPrice": 99.215,
+      "basePrice": 482.25,
+      "entryPct": 66,
+      "entryScore": 27,
+      "entryTotal": 41,
+      "entryGrade": "C+",
+      "criticalFails": 0,
+      "failedLabels": [
+        "AMD 변동",
+        "AMDW 변동",
+        "QQQ",
+        "AMD 5일",
+        "AMDW 5일"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-06-05T16:08:41.125Z",
+      "tk": "PLTW",
+      "exDivDate": "2026-06-08",
+      "predicted": 0.448748,
+      "predictedAnnual": 23.33,
+      "predictedYield": 109.91,
+      "hv20": 58.71,
+      "vix": 17.2,
+      "etfPrice": 21.23,
+      "basePrice": 137.1,
+      "entryPct": 56,
+      "entryScore": 23,
+      "entryTotal": 41,
+      "entryGrade": "C",
+      "criticalFails": 0,
+      "failedLabels": [
+        "PLTR 변동",
+        "QQQ",
+        "PLTW 거래량",
+        "PLTR MA20",
+        "PLTR 5일",
+        "PLTW 5일"
+      ],
       "actual": null,
       "actualPaidDate": null,
       "accuracy": null,
@@ -6290,5 +6355,5 @@
       "profitable": null
     }
   ],
-  "updatedAt": "2026-06-03T17:16:26.507Z"
+  "updatedAt": "2026-06-05T16:08:41.125Z"
 }
