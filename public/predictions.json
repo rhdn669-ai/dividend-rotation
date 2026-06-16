@@ -6464,14 +6464,14 @@
         "AMD 변동",
         "AMDW 변동"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.902,
+      "actualPaidDate": "2026-06-15",
+      "accuracy": 30.55,
+      "errorPct": -69.45,
+      "priceAfterExDiv": 111.9,
+      "capitalChangePct": 7.48,
+      "netReturnPct": 8.35,
+      "profitable": true
     },
     {
       "ts": "2026-06-12T16:27:36.235Z",
@@ -6494,15 +6494,15 @@
         "PLTR 5일",
         "PLTW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.085,
+      "actualPaidDate": "2026-06-15",
+      "accuracy": 21.15,
+      "errorPct": -78.85,
+      "priceAfterExDiv": 20.18,
+      "capitalChangePct": 5.65,
+      "netReturnPct": 6.1,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-06-12T16:27:36.236Z"
+  "updatedAt": "2026-06-16T05:30:59.561Z"
 }
