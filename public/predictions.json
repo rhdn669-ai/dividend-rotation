@@ -6651,7 +6651,92 @@
       "capitalChangePct": -8.63,
       "netReturnPct": -7.85,
       "profitable": false
+    },
+    {
+      "ts": "2026-06-24T15:06:03.296Z",
+      "tk": "NVDY",
+      "exDivDate": "2026-06-25",
+      "predicted": 0.208357,
+      "predictedAnnual": 10.83,
+      "predictedYield": 85.72,
+      "hv20": 45.78,
+      "vix": 18.28,
+      "etfPrice": 12.64,
+      "basePrice": 201.2,
+      "entryPct": 85,
+      "entryScore": 35,
+      "entryTotal": 41,
+      "entryGrade": "A",
+      "criticalFails": 0,
+      "failedLabels": [
+        "NVDY 거래량",
+        "NVDA MA20"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-06-24T15:06:03.296Z",
+      "tk": "AMDY",
+      "exDivDate": "2026-06-25",
+      "predicted": 1.541877,
+      "predictedAnnual": 80.18,
+      "predictedYield": 148.23,
+      "hv20": 79.17,
+      "vix": 18.28,
+      "etfPrice": 54.09,
+      "basePrice": 520.18,
+      "entryPct": 95,
+      "entryScore": 39,
+      "entryTotal": 41,
+      "entryGrade": "S",
+      "criticalFails": 0,
+      "failedLabels": [
+        "AMDY 거래량"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-06-24T15:06:03.296Z",
+      "tk": "TSMY",
+      "exDivDate": "2026-06-25",
+      "predicted": 0.343024,
+      "predictedAnnual": 17.84,
+      "predictedYield": 105.17,
+      "hv20": 56.17,
+      "vix": 18.28,
+      "etfPrice": 16.961,
+      "basePrice": 441.36,
+      "entryPct": 95,
+      "entryScore": 39,
+      "entryTotal": 41,
+      "entryGrade": "S",
+      "criticalFails": 0,
+      "failedLabels": [
+        "TSMY 거래량"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
     }
   ],
-  "updatedAt": "2026-06-23T05:13:48.707Z"
+  "updatedAt": "2026-06-24T15:06:03.297Z"
 }
