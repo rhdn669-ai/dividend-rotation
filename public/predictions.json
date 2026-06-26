@@ -6676,10 +6676,10 @@
       "actualPaidDate": "2026-06-25",
       "accuracy": 48.47,
       "errorPct": -51.53,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "priceAfterExDiv": 12.23,
+      "capitalChangePct": -3.24,
+      "netReturnPct": -2.44,
+      "profitable": false
     },
     {
       "ts": "2026-06-24T15:06:03.296Z",
@@ -6704,10 +6704,10 @@
       "actualPaidDate": "2026-06-25",
       "accuracy": 57.2,
       "errorPct": -42.8,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "priceAfterExDiv": 54.3,
+      "capitalChangePct": 0.39,
+      "netReturnPct": 2.02,
+      "profitable": true
     },
     {
       "ts": "2026-06-24T15:06:03.296Z",
@@ -6732,11 +6732,11 @@
       "actualPaidDate": "2026-06-25",
       "accuracy": 60.93,
       "errorPct": -39.07,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "priceAfterExDiv": 16.72,
+      "capitalChangePct": -1.42,
+      "netReturnPct": -0.19,
+      "profitable": false
     }
   ],
-  "updatedAt": "2026-06-26T01:28:51.754Z"
+  "updatedAt": "2026-06-26T06:19:40.827Z"
 }
