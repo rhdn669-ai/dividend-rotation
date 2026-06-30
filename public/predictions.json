@@ -6754,14 +6754,14 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 1.844,
+      "actualPaidDate": "2026-06-29",
+      "accuracy": 60.89,
+      "errorPct": -39.11,
+      "priceAfterExDiv": 105.319,
+      "capitalChangePct": -0.76,
+      "netReturnPct": 0.97,
+      "profitable": true
     },
     {
       "ts": "2026-06-26T13:19:18.928Z",
@@ -6787,15 +6787,15 @@
         "PLTR 5일",
         "PLTW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.198,
+      "actualPaidDate": "2026-06-29",
+      "accuracy": 53.12,
+      "errorPct": -46.88,
+      "priceAfterExDiv": 16.43,
+      "capitalChangePct": 8.38,
+      "netReturnPct": 9.68,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-06-26T13:19:18.929Z"
+  "updatedAt": "2026-06-30T04:33:03.441Z"
 }
