@@ -6905,14 +6905,14 @@
         "AMDW 변동",
         "AMDW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 1.32,
+      "actualPaidDate": "2026-07-06",
+      "accuracy": 42.02,
+      "errorPct": -57.98,
+      "priceAfterExDiv": 106.68,
+      "capitalChangePct": 6.2,
+      "netReturnPct": 7.52,
+      "profitable": true
     },
     {
       "ts": "2026-07-03T14:31:09.315Z",
@@ -6931,15 +6931,15 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.074,
+      "actualPaidDate": "2026-07-06",
+      "accuracy": 19.05,
+      "errorPct": -80.95,
+      "priceAfterExDiv": 19.23,
+      "capitalChangePct": 2.67,
+      "netReturnPct": 3.06,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-07-03T14:31:09.315Z"
+  "updatedAt": "2026-07-07T05:05:37.283Z"
 }
