@@ -7030,7 +7030,63 @@
       "capitalChangePct": -0.97,
       "netReturnPct": -0.05,
       "profitable": false
+    },
+    {
+      "ts": "2026-07-10T14:50:08.197Z",
+      "tk": "AMDW",
+      "exDivDate": "2026-07-13",
+      "predicted": 3.013713,
+      "predictedAnnual": 156.71,
+      "predictedYield": 147.59,
+      "hv20": 78.83,
+      "vix": 15.96,
+      "etfPrice": 106.179,
+      "basePrice": 549.69,
+      "entryPct": 95,
+      "entryScore": 39,
+      "entryTotal": 41,
+      "entryGrade": "S",
+      "criticalFails": 0,
+      "failedLabels": [
+        "AMDW 거래량"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-07-10T14:50:08.197Z",
+      "tk": "PLTW",
+      "exDivDate": "2026-07-13",
+      "predicted": 0.370499,
+      "predictedAnnual": 19.27,
+      "predictedYield": 105.86,
+      "hv20": 56.54,
+      "vix": 15.96,
+      "etfPrice": 18.2,
+      "basePrice": 126.87,
+      "entryPct": 95,
+      "entryScore": 39,
+      "entryTotal": 41,
+      "entryGrade": "S",
+      "criticalFails": 0,
+      "failedLabels": [
+        "PLTW 거래량"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
     }
   ],
-  "updatedAt": "2026-07-10T04:12:12.280Z"
+  "updatedAt": "2026-07-10T14:50:08.197Z"
 }
