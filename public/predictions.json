@@ -7050,10 +7050,10 @@
       "failedLabels": [
         "AMDW 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 1.427,
+      "actualPaidDate": "2026-07-13",
+      "accuracy": 47.35,
+      "errorPct": -52.65,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7078,15 +7078,15 @@
       "failedLabels": [
         "PLTW 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.268,
+      "actualPaidDate": "2026-07-13",
+      "accuracy": 72.33,
+      "errorPct": -27.67,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-07-10T14:50:08.197Z"
+  "updatedAt": "2026-07-14T03:31:15.837Z"
 }
