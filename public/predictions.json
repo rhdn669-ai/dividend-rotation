@@ -7109,10 +7109,10 @@
         "NVDA 변동",
         "NVDY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.096,
+      "actualPaidDate": "2026-07-16",
+      "accuracy": 53.69,
+      "errorPct": -46.31,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7139,10 +7139,10 @@
         "실적 임박 없음",
         "AMDY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.853,
+      "actualPaidDate": "2026-07-16",
+      "accuracy": 57.43,
+      "errorPct": -42.57,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7170,15 +7170,15 @@
         "TSMY 거래량",
         "TSM MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.142,
+      "actualPaidDate": "2026-07-16",
+      "accuracy": 41.49,
+      "errorPct": -58.51,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-07-15T14:07:11.005Z"
+  "updatedAt": "2026-07-17T03:35:58.319Z"
 }
