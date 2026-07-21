@@ -7207,10 +7207,10 @@
       "actualPaidDate": "2026-07-20",
       "accuracy": 88.31,
       "errorPct": -11.69,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "priceAfterExDiv": 92.2,
+      "capitalChangePct": 9.11,
+      "netReturnPct": 11.41,
+      "profitable": true
     },
     {
       "ts": "2026-07-17T14:00:43.355Z",
@@ -7236,11 +7236,11 @@
       "actualPaidDate": "2026-07-20",
       "accuracy": 48,
       "errorPct": -52,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "priceAfterExDiv": 19.08,
+      "capitalChangePct": 2.25,
+      "netReturnPct": 3.2,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-07-21T03:43:28.495Z"
+  "updatedAt": "2026-07-21T06:39:56.552Z"
 }
