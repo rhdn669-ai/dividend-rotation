@@ -7203,10 +7203,10 @@
         "AMD 5일",
         "AMDW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 1.951,
+      "actualPaidDate": "2026-07-20",
+      "accuracy": 88.31,
+      "errorPct": -11.69,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7232,15 +7232,15 @@
         "PLTW 거래량",
         "PLTR RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.177,
+      "actualPaidDate": "2026-07-20",
+      "accuracy": 48,
+      "errorPct": -52,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-07-17T14:00:43.355Z"
+  "updatedAt": "2026-07-21T03:43:28.495Z"
 }
