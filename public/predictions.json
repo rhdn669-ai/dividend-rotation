@@ -7651,10 +7651,10 @@
         "AMDW 거래량",
         "AMD MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.797,
+      "actualPaidDate": "2026-08-10",
+      "accuracy": 31.24,
+      "errorPct": -68.76,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7681,15 +7681,15 @@
         "PLTW 변동",
         "PLTW 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.192,
+      "actualPaidDate": "2026-08-10",
+      "accuracy": 22.36,
+      "errorPct": -77.64,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-08-07T13:36:41.589Z"
+  "updatedAt": "2026-08-11T02:25:51.071Z"
 }
