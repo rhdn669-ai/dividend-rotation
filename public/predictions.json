@@ -7710,10 +7710,10 @@
         "VIX 15~30",
         "NVDY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.099,
+      "actualPaidDate": "2026-08-13",
+      "accuracy": 55.21,
+      "errorPct": -44.79,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7740,10 +7740,10 @@
         "AMDY 거래량",
         "AMD MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.564,
+      "actualPaidDate": "2026-08-13",
+      "accuracy": 42.53,
+      "errorPct": -57.47,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7769,15 +7769,15 @@
         "VIX 15~30",
         "TSMY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.12,
+      "actualPaidDate": "2026-08-13",
+      "accuracy": 49.3,
+      "errorPct": -50.7,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-08-12T13:43:57.342Z"
+  "updatedAt": "2026-08-14T02:43:43.072Z"
 }
