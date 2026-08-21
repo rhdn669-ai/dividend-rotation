@@ -7857,10 +7857,10 @@
       "failedLabels": [
         "NVDA RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.12,
+      "actualPaidDate": "2026-08-20",
+      "accuracy": 67.89,
+      "errorPct": -32.11,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7886,10 +7886,10 @@
         "AMD 변동",
         "AMD MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.609,
+      "actualPaidDate": "2026-08-20",
+      "accuracy": 48.61,
+      "errorPct": -51.39,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -7915,15 +7915,15 @@
         "TSM 변동",
         "TSM RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.146,
+      "actualPaidDate": "2026-08-20",
+      "accuracy": 67.89,
+      "errorPct": -32.11,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-08-19T13:06:45.776Z"
+  "updatedAt": "2026-08-21T01:55:54.106Z"
 }
