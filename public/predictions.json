@@ -7923,7 +7923,63 @@
       "capitalChangePct": -0.33,
       "netReturnPct": 0.63,
       "profitable": true
+    },
+    {
+      "ts": "2026-08-21T13:09:08.113Z",
+      "tk": "AMDW",
+      "exDivDate": "2026-08-24",
+      "predicted": 2.248492,
+      "predictedAnnual": 116.92,
+      "predictedYield": 145.88,
+      "hv20": 77.91,
+      "vix": 15.43,
+      "etfPrice": 80.15,
+      "basePrice": 469.45,
+      "entryPct": 90,
+      "entryScore": 37,
+      "entryTotal": 41,
+      "entryGrade": "A+",
+      "criticalFails": 0,
+      "failedLabels": [
+        "AMD MA20"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-08-21T13:09:08.113Z",
+      "tk": "PLTW",
+      "exDivDate": "2026-08-24",
+      "predicted": 0.904764,
+      "predictedAnnual": 47.05,
+      "predictedYield": 193.45,
+      "hv20": 103.32,
+      "vix": 15.43,
+      "etfPrice": 24.32,
+      "basePrice": 173.96,
+      "entryPct": 93,
+      "entryScore": 38,
+      "entryTotal": 41,
+      "entryGrade": "A+",
+      "criticalFails": 0,
+      "failedLabels": [
+        "PLTR RSI"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
     }
   ],
-  "updatedAt": "2026-08-21T04:02:54.319Z"
+  "updatedAt": "2026-08-21T13:09:08.114Z"
 }
