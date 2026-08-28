@@ -8063,7 +8063,64 @@
       "capitalChangePct": 0.46,
       "netReturnPct": 1.09,
       "profitable": true
+    },
+    {
+      "ts": "2026-08-28T18:39:18.958Z",
+      "tk": "AMDW",
+      "exDivDate": "2026-08-31",
+      "predicted": 1.542912,
+      "predictedAnnual": 80.23,
+      "predictedYield": 101.62,
+      "hv20": 54.27,
+      "vix": 14.61,
+      "etfPrice": 78.955,
+      "basePrice": 470,
+      "entryPct": 78,
+      "entryScore": 32,
+      "entryTotal": 41,
+      "entryGrade": "C",
+      "criticalFails": 1,
+      "failedLabels": [
+        "VIX 15~30",
+        "AMD MA20"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-08-28T18:39:18.958Z",
+      "tk": "PLTW",
+      "exDivDate": "2026-08-31",
+      "predicted": 0.933151,
+      "predictedAnnual": 48.52,
+      "predictedYield": 186.06,
+      "hv20": 99.37,
+      "vix": 14.61,
+      "etfPrice": 26.08,
+      "basePrice": 185.91,
+      "entryPct": 88,
+      "entryScore": 36,
+      "entryTotal": 41,
+      "entryGrade": "C",
+      "criticalFails": 1,
+      "failedLabels": [
+        "VIX 15~30"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
     }
   ],
-  "updatedAt": "2026-08-28T05:22:09.785Z"
+  "updatedAt": "2026-08-28T18:39:18.959Z"
 }
