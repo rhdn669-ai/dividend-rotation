@@ -8084,14 +8084,14 @@
         "VIX 15~30",
         "AMD MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.573,
+      "actualPaidDate": "2026-08-31",
+      "accuracy": 37.14,
+      "errorPct": -62.86,
+      "priceAfterExDiv": 78.61,
+      "capitalChangePct": -0.44,
+      "netReturnPct": 0.29,
+      "profitable": true
     },
     {
       "ts": "2026-08-28T18:39:18.958Z",
@@ -8112,15 +8112,15 @@
       "failedLabels": [
         "VIX 15~30"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.316,
+      "actualPaidDate": "2026-08-31",
+      "accuracy": 33.86,
+      "errorPct": -66.14,
+      "priceAfterExDiv": 25.86,
+      "capitalChangePct": -0.84,
+      "netReturnPct": 0.37,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-08-28T18:39:18.959Z"
+  "updatedAt": "2026-09-01T05:04:47.248Z"
 }
