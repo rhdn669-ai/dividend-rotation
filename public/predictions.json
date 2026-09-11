@@ -8293,14 +8293,14 @@
       "failedLabels": [
         "NVDY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.101,
+      "actualPaidDate": "2026-09-10",
+      "accuracy": 51.02,
+      "errorPct": -48.98,
+      "priceAfterExDiv": 12.35,
+      "capitalChangePct": -3.14,
+      "netReturnPct": -2.35,
+      "profitable": false
     },
     {
       "ts": "2026-09-09T16:36:24.026Z",
@@ -8321,14 +8321,14 @@
       "failedLabels": [
         "AMD 변동"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.376,
+      "actualPaidDate": "2026-09-10",
+      "accuracy": 46,
+      "errorPct": -54,
+      "priceAfterExDiv": 44.56,
+      "capitalChangePct": -4.09,
+      "netReturnPct": -3.28,
+      "profitable": false
     },
     {
       "ts": "2026-09-09T16:36:24.026Z",
@@ -8347,15 +8347,15 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.104,
+      "actualPaidDate": "2026-09-10",
+      "accuracy": 69.96,
+      "errorPct": -30.04,
+      "priceAfterExDiv": 15.2,
+      "capitalChangePct": -1.59,
+      "netReturnPct": -0.91,
+      "profitable": false
     }
   ],
-  "updatedAt": "2026-09-09T16:36:24.026Z"
+  "updatedAt": "2026-09-11T05:57:18.661Z"
 }
