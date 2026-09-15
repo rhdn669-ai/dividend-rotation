@@ -8373,14 +8373,14 @@
       "entryGrade": "S",
       "criticalFails": 0,
       "failedLabels": [],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.923,
+      "actualPaidDate": "2026-09-14",
+      "accuracy": 58.96,
+      "errorPct": -41.04,
+      "priceAfterExDiv": 81.25,
+      "capitalChangePct": -5.67,
+      "netReturnPct": -4.59,
+      "profitable": false
     },
     {
       "ts": "2026-09-11T16:26:23.384Z",
@@ -8403,15 +8403,15 @@
         "PLTR 5일",
         "PLTW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.172,
+      "actualPaidDate": "2026-09-14",
+      "accuracy": 43.23,
+      "errorPct": -56.77,
+      "priceAfterExDiv": 23.09,
+      "capitalChangePct": 3.68,
+      "netReturnPct": 4.45,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-09-11T16:26:23.384Z"
+  "updatedAt": "2026-09-15T04:51:24.383Z"
 }
