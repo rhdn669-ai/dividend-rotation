@@ -8433,14 +8433,14 @@
         "NVDA MA20",
         "NVDA 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.089,
+      "actualPaidDate": "2026-09-17",
+      "accuracy": 45.6,
+      "errorPct": -54.4,
+      "priceAfterExDiv": 12.38,
+      "capitalChangePct": 0.69,
+      "netReturnPct": 1.42,
+      "profitable": true
     },
     {
       "ts": "2026-09-16T16:52:05.572Z",
@@ -8461,14 +8461,14 @@
       "failedLabels": [
         "AMD 변동"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.391,
+      "actualPaidDate": "2026-09-17",
+      "accuracy": 49.54,
+      "errorPct": -50.46,
+      "priceAfterExDiv": 47.04,
+      "capitalChangePct": 2.27,
+      "netReturnPct": 3.12,
+      "profitable": true
     },
     {
       "ts": "2026-09-16T16:52:05.573Z",
@@ -8491,15 +8491,15 @@
         "TSM MA20",
         "TSM 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.086,
+      "actualPaidDate": "2026-09-17",
+      "accuracy": 61.94,
+      "errorPct": -38.06,
+      "priceAfterExDiv": 15.11,
+      "capitalChangePct": 1.96,
+      "netReturnPct": 2.54,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-09-16T16:52:05.573Z"
+  "updatedAt": "2026-09-18T05:54:06.191Z"
 }
