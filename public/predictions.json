@@ -8519,14 +8519,14 @@
       "failedLabels": [
         "AMD RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 1.196,
+      "actualPaidDate": "2026-09-21",
+      "accuracy": 75.33,
+      "errorPct": -24.67,
+      "priceAfterExDiv": 104.1,
+      "capitalChangePct": 14.21,
+      "netReturnPct": 15.52,
+      "profitable": true
     },
     {
       "ts": "2026-09-18T14:58:33.273Z",
@@ -8548,15 +8548,15 @@
         "PLTW 거래량",
         "PLTR MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.187,
+      "actualPaidDate": "2026-09-21",
+      "accuracy": 44.2,
+      "errorPct": -55.8,
+      "priceAfterExDiv": 24.42,
+      "capitalChangePct": 4.4,
+      "netReturnPct": 5.2,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-09-18T14:58:33.273Z"
+  "updatedAt": "2026-09-22T04:52:10.256Z"
 }
