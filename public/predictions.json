@@ -8606,14 +8606,14 @@
         "VIX 15~30",
         "AMD RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.779,
+      "actualPaidDate": "2026-09-24",
+      "accuracy": 76.23,
+      "errorPct": -23.77,
+      "priceAfterExDiv": 52.36,
+      "capitalChangePct": 0.9,
+      "netReturnPct": 2.4,
+      "profitable": true
     },
     {
       "ts": "2026-09-23T16:55:07.843Z",
@@ -8645,5 +8645,5 @@
       "profitable": null
     }
   ],
-  "updatedAt": "2026-09-23T16:55:07.843Z"
+  "updatedAt": "2026-09-25T07:45:25.872Z"
 }
