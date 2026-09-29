@@ -8664,10 +8664,10 @@
         "AMDW 거래량",
         "AMD RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 1.341,
+      "actualPaidDate": "2026-09-28",
+      "accuracy": 64.93,
+      "errorPct": -35.07,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -8693,15 +8693,15 @@
         "PLTW 거래량",
         "PLTR RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.323,
+      "actualPaidDate": "2026-09-28",
+      "accuracy": 73.08,
+      "errorPct": -26.92,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-09-25T13:44:28.354Z"
+  "updatedAt": "2026-09-29T01:55:16.832Z"
 }
