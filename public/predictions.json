@@ -8577,14 +8577,14 @@
         "VIX 15~30",
         "NVDY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.1,
+      "actualPaidDate": "2026-09-24",
+      "accuracy": 50.07,
+      "errorPct": -49.93,
+      "priceAfterExDiv": 12.74,
+      "capitalChangePct": 1.11,
+      "netReturnPct": 1.9,
+      "profitable": true
     },
     {
       "ts": "2026-09-23T16:55:07.843Z",
@@ -8635,14 +8635,14 @@
         "VIX 15~30",
         "TSMY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.092,
+      "actualPaidDate": "2026-09-24",
+      "accuracy": 59.95,
+      "errorPct": -40.05,
+      "priceAfterExDiv": 15.81,
+      "capitalChangePct": 1.67,
+      "netReturnPct": 2.26,
+      "profitable": true
     },
     {
       "ts": "2026-09-25T13:44:28.353Z",
@@ -8788,5 +8788,5 @@
       "profitable": null
     }
   ],
-  "updatedAt": "2026-09-30T13:40:26.911Z"
+  "updatedAt": "2026-10-01T05:48:20.035Z"
 }
