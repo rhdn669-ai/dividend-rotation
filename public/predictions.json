@@ -8721,10 +8721,10 @@
       "failedLabels": [
         "NVDY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.087,
+      "actualPaidDate": "2026-10-01",
+      "accuracy": 70.15,
+      "errorPct": -29.85,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -8750,10 +8750,10 @@
         "AMDY 거래량",
         "AMD RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.987,
+      "actualPaidDate": "2026-10-01",
+      "accuracy": 100.39,
+      "errorPct": 0.39,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -8778,15 +8778,15 @@
       "failedLabels": [
         "TSMY 거래량"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.111,
+      "actualPaidDate": "2026-10-01",
+      "accuracy": 77.87,
+      "errorPct": -22.13,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-10-01T05:48:20.035Z"
+  "updatedAt": "2026-10-02T02:14:17.825Z"
 }
