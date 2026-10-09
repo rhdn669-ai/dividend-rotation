@@ -8866,10 +8866,10 @@
         "NVDY 거래량",
         "NVDA RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.076,
+      "actualPaidDate": "2026-10-08",
+      "accuracy": 68.99,
+      "errorPct": -31.01,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -8894,10 +8894,10 @@
       "failedLabels": [
         "AMD RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 1.025,
+      "actualPaidDate": "2026-10-08",
+      "accuracy": 107.46,
+      "errorPct": 7.46,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
@@ -8922,15 +8922,15 @@
       "failedLabels": [
         "TSM RSI"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
+      "actual": 0.128,
+      "actualPaidDate": "2026-10-08",
+      "accuracy": 82.99,
+      "errorPct": -17.01,
       "priceAfterExDiv": null,
       "capitalChangePct": null,
       "netReturnPct": null,
       "profitable": null
     }
   ],
-  "updatedAt": "2026-10-07T14:30:24.005Z"
+  "updatedAt": "2026-10-09T02:07:24.494Z"
 }
