@@ -8930,7 +8930,67 @@
       "capitalChangePct": -4.52,
       "netReturnPct": -3.73,
       "profitable": false
+    },
+    {
+      "ts": "2026-10-09T16:09:51.853Z",
+      "tk": "AMDW",
+      "exDivDate": "2026-10-12",
+      "predicted": 1.838902,
+      "predictedAnnual": 95.62,
+      "predictedYield": 95.57,
+      "hv20": 51.04,
+      "vix": 14.87,
+      "etfPrice": 100.06,
+      "basePrice": 611.57,
+      "entryPct": 76,
+      "entryScore": 31,
+      "entryTotal": 41,
+      "entryGrade": "C",
+      "criticalFails": 1,
+      "failedLabels": [
+        "VIX 15~30",
+        "AMD 5일",
+        "AMDW 5일"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-10-09T16:09:51.854Z",
+      "tk": "PLTW",
+      "exDivDate": "2026-10-12",
+      "predicted": 0.23364,
+      "predictedAnnual": 12.15,
+      "predictedYield": 44.63,
+      "hv20": 23.84,
+      "vix": 14.87,
+      "etfPrice": 27.22,
+      "basePrice": 205.72,
+      "entryPct": 71,
+      "entryScore": 29,
+      "entryTotal": 41,
+      "entryGrade": "C",
+      "criticalFails": 1,
+      "failedLabels": [
+        "PLTR 변동",
+        "VIX 15~30",
+        "PLTR RSI"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
     }
   ],
-  "updatedAt": "2026-10-09T08:59:59.491Z"
+  "updatedAt": "2026-10-09T16:09:51.854Z"
 }
