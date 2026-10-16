@@ -9013,14 +9013,14 @@
         "NVDA 5일",
         "NVDY 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.08,
+      "actualPaidDate": "2026-10-15",
+      "accuracy": 77.67,
+      "errorPct": -22.33,
+      "priceAfterExDiv": 11.88,
+      "capitalChangePct": -3.45,
+      "netReturnPct": -2.8,
+      "profitable": false
     },
     {
       "ts": "2026-10-14T15:06:24.946Z",
@@ -9044,14 +9044,14 @@
         "AMD 5일",
         "AMDY 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.668,
+      "actualPaidDate": "2026-10-15",
+      "accuracy": 75.46,
+      "errorPct": -24.54,
+      "priceAfterExDiv": 45.32,
+      "capitalChangePct": -4.65,
+      "netReturnPct": -3.24,
+      "profitable": false
     },
     {
       "ts": "2026-10-14T15:06:24.947Z",
@@ -9074,15 +9074,15 @@
         "TSM 5일",
         "TSMY 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.082,
+      "actualPaidDate": "2026-10-15",
+      "accuracy": 55.36,
+      "errorPct": -44.64,
+      "priceAfterExDiv": 14.36,
+      "capitalChangePct": -3.23,
+      "netReturnPct": -2.68,
+      "profitable": false
     }
   ],
-  "updatedAt": "2026-10-14T15:06:24.947Z"
+  "updatedAt": "2026-10-16T05:49:29.019Z"
 }
