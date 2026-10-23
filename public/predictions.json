@@ -9236,7 +9236,69 @@
       "capitalChangePct": -3.94,
       "netReturnPct": -3.52,
       "profitable": false
+    },
+    {
+      "ts": "2026-10-23T13:23:16.159Z",
+      "tk": "AMDW",
+      "exDivDate": "2026-10-26",
+      "predicted": 1.407593,
+      "predictedAnnual": 73.19,
+      "predictedYield": 93.4,
+      "hv20": 49.88,
+      "vix": 20.15,
+      "etfPrice": 78.37,
+      "basePrice": 507.93,
+      "entryPct": 49,
+      "entryScore": 20,
+      "entryTotal": 41,
+      "entryGrade": "D",
+      "criticalFails": 0,
+      "failedLabels": [
+        "AMD 변동",
+        "AMDW 변동",
+        "QQQ",
+        "AMD RSI",
+        "AMD MA20",
+        "AMD 5일",
+        "AMDW 5일"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-10-23T13:23:16.159Z",
+      "tk": "PLTW",
+      "exDivDate": "2026-10-26",
+      "predicted": 0.404676,
+      "predictedAnnual": 21.04,
+      "predictedYield": 83.84,
+      "hv20": 44.78,
+      "vix": 20.15,
+      "etfPrice": 25.1,
+      "basePrice": 196.19,
+      "entryPct": 93,
+      "entryScore": 38,
+      "entryTotal": 41,
+      "entryGrade": "A+",
+      "criticalFails": 0,
+      "failedLabels": [
+        "QQQ"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
     }
   ],
-  "updatedAt": "2026-10-23T07:28:30.481Z"
+  "updatedAt": "2026-10-23T13:23:16.159Z"
 }
