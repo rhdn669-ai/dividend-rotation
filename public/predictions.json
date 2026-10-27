@@ -9262,14 +9262,14 @@
         "AMD 5일",
         "AMDW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.285,
+      "actualPaidDate": "2026-10-26",
+      "accuracy": 20.25,
+      "errorPct": -79.75,
+      "priceAfterExDiv": 82.23,
+      "capitalChangePct": 4.93,
+      "netReturnPct": 5.29,
+      "profitable": true
     },
     {
       "ts": "2026-10-23T13:23:16.159Z",
@@ -9290,15 +9290,15 @@
       "failedLabels": [
         "QQQ"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.116,
+      "actualPaidDate": "2026-10-26",
+      "accuracy": 28.66,
+      "errorPct": -71.34,
+      "priceAfterExDiv": 25.315,
+      "capitalChangePct": 0.86,
+      "netReturnPct": 1.32,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-10-23T13:23:16.159Z"
+  "updatedAt": "2026-10-27T04:59:46.006Z"
 }
