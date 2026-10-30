@@ -9319,14 +9319,14 @@
         "NVDY 거래량",
         "NVDA MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.069,
+      "actualPaidDate": "2026-10-29",
+      "accuracy": 54.66,
+      "errorPct": -45.34,
+      "priceAfterExDiv": 11.67,
+      "capitalChangePct": -1.44,
+      "netReturnPct": -0.85,
+      "profitable": false
     },
     {
       "ts": "2026-10-28T15:59:11.110Z",
@@ -9348,14 +9348,14 @@
         "AMDY 거래량",
         "AMD MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.356,
+      "actualPaidDate": "2026-10-29",
+      "accuracy": 39.64,
+      "errorPct": -60.36,
+      "priceAfterExDiv": 44.6,
+      "capitalChangePct": -0.89,
+      "netReturnPct": -0.1,
+      "profitable": false
     },
     {
       "ts": "2026-10-28T15:59:11.110Z",
@@ -9377,15 +9377,15 @@
         "TSMY 거래량",
         "TSM MA20"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.081,
+      "actualPaidDate": "2026-10-29",
+      "accuracy": 43.77,
+      "errorPct": -56.23,
+      "priceAfterExDiv": 14.52,
+      "capitalChangePct": -1.29,
+      "netReturnPct": -0.74,
+      "profitable": false
     }
   ],
-  "updatedAt": "2026-10-28T15:59:11.110Z"
+  "updatedAt": "2026-10-30T05:43:23.712Z"
 }
