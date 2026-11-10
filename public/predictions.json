@@ -9410,14 +9410,14 @@
         "AMD 5일",
         "AMDW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.776,
+      "actualPaidDate": "2026-11-09",
+      "accuracy": 39.98,
+      "errorPct": -60.02,
+      "priceAfterExDiv": 76.15,
+      "capitalChangePct": 0.7,
+      "netReturnPct": 1.73,
+      "profitable": true
     },
     {
       "ts": "2026-10-30T18:35:05.963Z",
@@ -9443,14 +9443,14 @@
         "PLTR 5일",
         "PLTW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.188,
+      "actualPaidDate": "2026-11-09",
+      "accuracy": 45.25,
+      "errorPct": -54.75,
+      "priceAfterExDiv": 20.26,
+      "capitalChangePct": -12.41,
+      "netReturnPct": -11.6,
+      "profitable": false
     },
     {
       "ts": "2026-11-04T14:35:50.878Z",
@@ -9568,14 +9568,14 @@
         "AMD 5일",
         "AMDW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.776,
+      "actualPaidDate": "2026-11-09",
+      "accuracy": 30.17,
+      "errorPct": -69.83,
+      "priceAfterExDiv": 76.15,
+      "capitalChangePct": 13.2,
+      "netReturnPct": 14.35,
+      "profitable": true
     },
     {
       "ts": "2026-11-06T14:59:40.686Z",
@@ -9602,15 +9602,15 @@
         "PLTR 5일",
         "PLTW 5일"
       ],
-      "actual": null,
-      "actualPaidDate": null,
-      "accuracy": null,
-      "errorPct": null,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "actual": 0.188,
+      "actualPaidDate": "2026-11-09",
+      "accuracy": 45.1,
+      "errorPct": -54.9,
+      "priceAfterExDiv": 20.26,
+      "capitalChangePct": 3.37,
+      "netReturnPct": 4.33,
+      "profitable": true
     }
   ],
-  "updatedAt": "2026-11-06T14:59:40.686Z"
+  "updatedAt": "2026-11-10T09:45:12.908Z"
 }
