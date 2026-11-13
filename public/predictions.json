@@ -9701,7 +9701,68 @@
       "capitalChangePct": 1.51,
       "netReturnPct": 2.1,
       "profitable": true
+    },
+    {
+      "ts": "2026-11-13T16:17:40.911Z",
+      "tk": "AMDW",
+      "exDivDate": "2026-11-16",
+      "predicted": 3.457561,
+      "predictedAnnual": 179.79,
+      "predictedYield": 227.74,
+      "hv20": 121.64,
+      "vix": 20.33,
+      "etfPrice": 78.945,
+      "basePrice": 524.65,
+      "entryPct": 78,
+      "entryScore": 32,
+      "entryTotal": 41,
+      "entryGrade": "B",
+      "criticalFails": 0,
+      "failedLabels": [
+        "AMD 변동",
+        "AMDW 변동",
+        "QQQ"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
+    },
+    {
+      "ts": "2026-11-13T16:17:40.911Z",
+      "tk": "PLTW",
+      "exDivDate": "2026-11-16",
+      "predicted": 0.410745,
+      "predictedAnnual": 21.36,
+      "predictedYield": 107.79,
+      "hv20": 57.57,
+      "vix": 20.33,
+      "etfPrice": 19.815,
+      "basePrice": 166.25,
+      "entryPct": 66,
+      "entryScore": 27,
+      "entryTotal": 41,
+      "entryGrade": "C+",
+      "criticalFails": 0,
+      "failedLabels": [
+        "PLTR 변동",
+        "QQQ",
+        "PLTR RSI",
+        "PLTR MA20"
+      ],
+      "actual": null,
+      "actualPaidDate": null,
+      "accuracy": null,
+      "errorPct": null,
+      "priceAfterExDiv": null,
+      "capitalChangePct": null,
+      "netReturnPct": null,
+      "profitable": null
     }
   ],
-  "updatedAt": "2026-11-13T07:54:03.429Z"
+  "updatedAt": "2026-11-13T16:17:40.911Z"
 }
