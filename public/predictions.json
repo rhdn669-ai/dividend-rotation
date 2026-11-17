@@ -9727,10 +9727,10 @@
       "actualPaidDate": "2026-11-16",
       "accuracy": 12.81,
       "errorPct": -87.19,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "priceAfterExDiv": 74.54,
+      "capitalChangePct": -5.58,
+      "netReturnPct": -5.02,
+      "profitable": false
     },
     {
       "ts": "2026-11-13T16:17:40.911Z",
@@ -9758,11 +9758,11 @@
       "actualPaidDate": "2026-11-16",
       "accuracy": 20.45,
       "errorPct": -79.55,
-      "priceAfterExDiv": null,
-      "capitalChangePct": null,
-      "netReturnPct": null,
-      "profitable": null
+      "priceAfterExDiv": 18.89,
+      "capitalChangePct": -4.67,
+      "netReturnPct": -4.24,
+      "profitable": false
     }
   ],
-  "updatedAt": "2026-11-17T03:49:17.197Z"
+  "updatedAt": "2026-11-17T13:19:22.411Z"
 }
